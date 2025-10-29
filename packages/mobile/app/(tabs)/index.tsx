@@ -1,6 +1,7 @@
-import React from "react";
-import { View, Pressable, Alert } from "react-native";
-import * as Clipboard from "expo-clipboard";
+import React from 'react';
+import { View, Pressable } from 'react-native';
+import { getOptimisticGigs, subscribeOptimisticGigs } from '../../src/optimisticGigs';
+import { useRouter } from 'expo-router';
 import {
   Badge,
   Button,
@@ -43,35 +44,128 @@ import {
   Switch,
   Text,
   UserIcon,
-} from "@/components/ui";
+} from '@/components/ui';
 
-export default function UIShowcase() {
-  const [switchValue, setSwitchValue] = React.useState(false);
-  const [checkboxValue, setCheckboxValue] = React.useState(false);
-  const [refreshing, setRefreshing] = React.useState(false);
-  const [dialogOpen, setDialogOpen] = React.useState(false);
-  const [sheetOpen, setSheetOpen] = React.useState(false);
-  const [drawerOpen, setDrawerOpen] = React.useState(false);
-  const [tablePage, setTablePage] = React.useState(0);
-  const [tablePageSize, setTablePageSize] = React.useState(5);
+type Gig = {
+  id: string;
+  title: string;
+  description?: string;
+  payout: number;
+  location?: string;
+  createdAt: string;
+};
 
-  const handleRefresh = React.useCallback(() => {
-    setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 2000);
+const MOCK_GIGS: Gig[] = [
+  {
+    id: '1',
+    title: 'Distribute flyers at Yaba market',
+    description: 'Need 10 people to hand out flyers for 3 hours',
+    payout: 35000,
+    location: 'Yaba, Lagos',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: '2',
+    title: 'Help set up event chairs',
+    payout: 5000,
+    location: 'University Campus',
+    createdAt: new Date().toISOString(),
+  },
+];
+
+export default function FeedScreen() {
+  const [gigs, setGigs] = React.useState<Gig[]>(() => [...MOCK_GIGS]);
+  const [selectedTag, setSelectedTag] = React.useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = React.useState<string>('');
+  const [minPayout, setMinPayout] = React.useState<string>('');
+  const [maxPayout, setMaxPayout] = React.useState<string>('');
+
+  const SAMPLE_TAGS = ['design', 'dev', 'react', 'marketing'];
+  const [availableTags, setAvailableTags] = React.useState<string[]>(SAMPLE_TAGS);
+
+  React.useEffect(() => {
+    // fetch server-backed tags and merge with sample tags
+    let mounted = true;
+    (async () => {
+      try {
+        const res = await fetch('http://localhost:3333/api/gigs/tags');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!mounted) return;
+        const merged = Array.from(new Set([...SAMPLE_TAGS, ...(Array.isArray(data) ? data : [])]));
+        setAvailableTags(merged);
+      } catch {
+        // ignore
+      }
+    })();
+    return () => { mounted = false; };
   }, []);
+
+  async function fetchGigs(filters?: { tag?: string; q?: string; minPayout?: number; maxPayout?: number }) {
+    try {
+      const params = new URLSearchParams();
+      if (filters?.tag) params.append('tag', filters.tag);
+      if (filters?.q) params.append('q', filters.q);
+      if (typeof filters?.minPayout === 'number') params.append('min', String(filters?.minPayout));
+      if (typeof filters?.maxPayout === 'number') params.append('max', String(filters?.maxPayout));
+      const url = `http://localhost:3333/api/gigs${params.toString() ? `?${params.toString()}` : ''}`;
+      const res = await fetch(url);
+      if (!res.ok) return;
+      const data = await res.json();
+      // merge optimistic gigs at top
+      const ogs = getOptimisticGigs();
+      setGigs((prev) => [...ogs, ...(Array.isArray(data) ? data : [])]);
+    } catch {
+      // ignore fetch errors in demo
+    }
+  }
+  React.useEffect(() => {
+    // subscribe to optimistic gigs from Post flow
+    let mounted = true;
+    // merge existing optimistic gigs at mount
+    const initial = getOptimisticGigs();
+    if (mounted && initial.length) setGigs((prev) => [...initial, ...prev]);
+    const unsub = subscribeOptimisticGigs((ogs: any[]) => {
+      setGigs((prev) => [...ogs, ...MOCK_GIGS.filter((m) => !ogs.find((o) => o.id === m.id))]);
+    });
+    // initial fetch from server
+    fetchGigs();
+    return () => { mounted = false; unsub(); };
+  }, []);
+  const router = useRouter();
 
   return (
     <SafeAreaView edges={["top"]} className="flex-1">
-      <KeyboardAvoidingView className="flex-1">
-        <ScrollView
-          className="flex-1"
-          contentContainerClassName="p-4"
-          refreshing={refreshing}
-          onRefresh={handleRefresh}
-        >
-          <Text variant="h1" className="mb-4">
-            UI Components Showcase
-          </Text>
+      <ScrollView contentContainerClassName="p-4">
+        <Text variant="h1" className="mb-4">Giggle — Feed</Text>
+
+          {/* Filters */}
+          <View className="mb-4">
+            <Input placeholder="Search gigs" value={searchQuery} onChangeText={(t) => setSearchQuery(t)} />
+            <View className="flex-row gap-2 mt-2">
+              {availableTags.map((t) => (
+                <Pressable
+                  key={t}
+                  onPress={() => {
+                    const next = selectedTag === t ? null : t;
+                    setSelectedTag(next);
+                    fetchGigs({ tag: next ?? undefined, q: searchQuery || undefined, minPayout: minPayout ? Number(minPayout) : undefined, maxPayout: maxPayout ? Number(maxPayout) : undefined });
+                  }}
+                  className={`px-3 py-1 rounded-full ${selectedTag === t ? 'bg-primary' : 'bg-muted'}`}>
+                  <Text className={`${selectedTag === t ? 'text-white' : ''}`}>{t}</Text>
+                </Pressable>
+              ))}
+            </View>
+            <View className="mt-2">
+              <View className="flex-row gap-2 mb-2">
+                <Input placeholder="Min payout (kobo)" value={minPayout} onChangeText={setMinPayout} keyboardType="numeric" />
+                <Input placeholder="Max payout (kobo)" value={maxPayout} onChangeText={setMaxPayout} keyboardType="numeric" />
+              </View>
+              <View>
+                <Button onPress={() => fetchGigs({ tag: selectedTag ?? undefined, q: searchQuery || undefined, minPayout: minPayout ? Number(minPayout) : undefined, maxPayout: maxPayout ? Number(maxPayout) : undefined })}>Apply Filters</Button>
+              </View>
+            </View>
+          </View>
 
           {/* Quick Start Guide */}
           <Card className="mb-8 border-primary/20">
@@ -666,8 +760,29 @@ if (status !== "granted") {
               <Text variant="small">• ScrollView with pull-to-refresh</Text>
             </CardContent>
           </Card>
-        </ScrollView>
-      </KeyboardAvoidingView>
+        {gigs.map((gig) => (
+          <Card key={gig.id} className="mb-4">
+            <CardContent>
+              <View className="flex-row justify-between">
+                <View className="flex-1">
+                  <Text variant="h3">{gig.title}</Text>
+                  {gig.description ? <Text className="text-muted">{gig.description}</Text> : null}
+                  <Text className="mt-2">₦{(gig.payout / 100).toLocaleString()}</Text>
+                </View>
+                <View className="justify-center">
+                  <Button>Claim</Button>
+                </View>
+              </View>
+            </CardContent>
+          </Card>
+        ))}
+
+        <View className="h-32" />
+      </ScrollView>
+
+      <Pressable onPress={() => router.push('post')} className="absolute bottom-8 right-6 bg-primary p-4 rounded-full shadow-lg">
+        <Text className="text-white font-bold">Post</Text>
+      </Pressable>
     </SafeAreaView>
   );
 }

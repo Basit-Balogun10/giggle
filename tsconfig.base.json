@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@giggle/common": ["packages/common/src"],
+      "@giggle/*": ["packages/*/src/*"],
+      "@/*": ["packages/*/src/*"]
+    }
+  }
+}

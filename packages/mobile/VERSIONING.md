@@ -67,11 +67,11 @@ Before each release:
 git init
 
 # Add remote repository
-git remote add origin https://github.com/chvvkrishnakumar/expo-nativewind-template.git
+git remote add origin https://github.com/Basit-Balogun10/giggle.git
 
 # Create initial commit
 git add .
-git commit -m "Initial commit: Expo NativeWind Template v0.1.0"
+git commit -m "Initial commit: Giggle mobile v0.1.0"
 
 # Create and push tag
 git tag -a v0.1.0 -m "Initial release"

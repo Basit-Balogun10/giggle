@@ -1,0 +1,24 @@
+{
+  "gigs": [],
+  "ledger": [
+    {
+      "id": "l_1761737707120",
+      "type": "hold",
+      "amount": 500,
+      "ref": "ps_local_1761737707120",
+      "meta": {
+        "gigId": "g1"
+      }
+    }
+  ],
+  "charges": [
+    {
+      "reference": "ps_local_1761737707120",
+      "amount": 500,
+      "status": "pending",
+      "metadata": {
+        "gigId": "g1"
+      }
+    }
+  ]
+}

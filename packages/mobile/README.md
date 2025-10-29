@@ -1,8 +1,37 @@
-# 📱 Expo NativeWind Template
+# Giggle Mobile
+
+This package contains the Giggle Expo mobile app.
+
+CI
+--
+
+The project uses a GitHub Actions workflow `.github/workflows/mobile-ci.yml` that:
+
+- runs lint and TypeScript checks on every push/PR that touches `packages/mobile/**`.
+- runs a full Expo Application Services (EAS) build on pushes to `main` (only).
+
+EAS build secrets
+--
+
+To enable EAS builds in CI you must add the following repository secret(s):
+
+- `EAS_TOKEN` — an Expo EAS API token with permissions to build and upload artifacts. Create it with `eas login` and `eas token:create` locally, then add it to the repository secrets in GitHub.
+
+Optional additional secrets (for advanced workflows):
+
+- Android keystore secrets or `EAS_KEY` if uploading to Play Store
+- Apple signing keys (for iOS builds)
+
+Notes
+--
+
+- The CI uses `pnpm dlx eas` to run the `eas-cli` without adding it to the repository dependencies.
+- EAS builds require your project to be configured for EAS (eas.json and relevant credentials). If you don't have that configured yet, the build step will fail — in that case, CI still runs lint/typecheck which is useful.
+# 📱 Giggle (mobile)
 
 > 🚀 **Production-Ready Expo Starter Kit** - Mobile app template with 20+ pre-built UI components, TypeScript, NativeWind (Tailwind CSS), and platform-specific behaviors for iOS/Android.
 
-[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/chvvkrishnakumar/expo-nativewind-template/releases)
+[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/Basit-Balogun10/giggle/releases)
 [![Expo](https://img.shields.io/badge/Expo-SDK_53-000.svg?style=flat&logo=expo)](https://expo.dev)
 [![React Native](https://img.shields.io/badge/React%20Native-0.79.6-61DAFB.svg?style=flat&logo=react)](https://reactnative.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3.3-blue.svg?style=flat&logo=typescript)](https://www.typescriptlang.org)
@@ -105,8 +134,8 @@ npx eas build --profile development --platform android
 
 1. **Clone the template**
    ```bash
-   git clone https://github.com/yourusername/expo-starter-template.git my-app
-   cd my-app
+  git clone https://github.com/Basit-Balogun10/giggle.git my-app
+  cd my-app
    ```
 
 2. **Install dependencies**
@@ -129,7 +158,7 @@ npx eas build --profile development --platform android
 ## 📁 Project Structure
 
 ```
-expo-nativewind-template/
+giggle-mobile/
 ├── app/                    # App routes (Expo Router)
 │   ├── (tabs)/            # Tab navigation screens
 │   │   ├── _layout.tsx    # Tab layout configuration

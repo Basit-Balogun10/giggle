@@ -1,0 +1,102 @@
+name: Mobile CI
+
+on:
+  push:
+    paths:
+      - 'packages/mobile/**'
+  pull_request:
+    paths:
+      - 'packages/mobile/**'
+
+jobs:
+  mobile-checks:
+    name: Mobile lint & typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      - name: Install workspace dependencies
+        run: pnpm -w install --frozen-lockfile
+
+      - name: Lint mobile (expo lint)
+        working-directory: packages/mobile
+        run: pnpm run lint
+
+      - name: Typecheck mobile (tsc --noEmit)
+        working-directory: packages/mobile
+        run: pnpm exec tsc --noEmit
+
+  # EAS builds are handled in a separate job below that only runs on pushes to main
+
+      - name: Upload mobile lint/typecheck results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-ci-logs
+          path: |
+            packages/mobile/.eslintcache
+            packages/mobile/.nyc_output || true
+
+  mobile-build:
+    name: Mobile EAS build (main branch)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: mobile-checks
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      - name: Install workspace dependencies
+        run: pnpm -w install --frozen-lockfile
+
+      - name: EAS build (android)
+        working-directory: packages/mobile
+        env:
+          EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
+        run: |
+          # Use pnpm dlx so we don't need to add eas-cli to the repo
+          pnpm dlx --package eas-cli@latest eas login --token $EAS_TOKEN
+          # Non-interactive build; adjust --profile or platform as needed
+          pnpm dlx --package eas-cli@latest eas build --platform android --non-interactive
+

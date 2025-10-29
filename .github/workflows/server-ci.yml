@@ -1,0 +1,63 @@
+name: Server CI
+
+on:
+  push:
+    paths:
+      - 'packages/server/**'
+  pull_request:
+    paths:
+      - 'packages/server/**'
+
+jobs:
+  server-checks:
+    name: Server tests & build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      - name: Install workspace dependencies
+        run: pnpm -w install --frozen-lockfile
+
+      - name: Run server tests (vitest)
+        run: pnpm --filter "@giggle/server" exec vitest run --reporter dot
+
+      - name: Lint server
+        run: pnpm --filter "@giggle/server" run lint
+
+      - name: Build server (production)
+        run: pnpm --filter "@giggle/server" run build
+
+      - name: Upload server build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-dist
+          path: packages/server/dist
+
+      - name: Upload server logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-failure-logs
+          path: |
+            packages/server/logs || true
