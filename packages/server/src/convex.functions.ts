@@ -2,7 +2,7 @@
 // This provides a `mutation(name, payload)` function similar to Convex server
 // functions. Data is stored in-memory for dev/test purposes.
 
-import type { CreateGigDTO, Gig } from '../../common/src/types';
+import type { CreateGigDTO, Gig, Bid, CreateBidDTO, UpdateBidDTO } from '../../common/src/types';
 import type { PaystackChargeData } from '../../common/src/payments';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -11,7 +11,7 @@ type MutationResult = unknown;
 
 const STORE_PATH = path.join(__dirname, '..', '..', 'dev-data.json');
 
-const store: { gigs: Gig[]; ledger: any[]; charges: PaystackChargeData[] } = readStore();
+const store: { gigs: Gig[]; ledger: any[]; charges: PaystackChargeData[]; bids: Bid[] } = readStore();
 
 function readStore() {
   try {
@@ -22,7 +22,7 @@ function readStore() {
   } catch (e) {
     // ignore parse errors and fall through to default
   }
-  return { gigs: [], ledger: [], charges: [] };
+  return { gigs: [], ledger: [], charges: [], bids: [] };
 }
 
 function writeStore() {
@@ -71,6 +71,128 @@ export const localConvex = {
         out = out.filter((g) => (g.title && g.title.toLowerCase().includes(needle)) || (g.description && g.description.toLowerCase().includes(needle)));
       }
       return out;
+    }
+
+    // Bids
+    if (name === 'bids.create') {
+      // payload: CreateBidDTO & { userId }
+      const p = payload as CreateBidDTO & { userId?: string };
+      if (!p.userId) throw new Error('unauthenticated');
+      const gig = store.gigs.find((g) => g.id === p.gigId);
+      if (!gig) throw new Error('gig not found');
+      const bid: Bid = {
+        id: `bid_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+        gigId: p.gigId,
+        bidderId: p.userId,
+        amount: p.amount,
+        message: p.message ?? undefined,
+        status: 'pending',
+        counterAmount: undefined,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      store.bids.push(bid);
+      writeStore();
+      return bid;
+    }
+
+    if (name === 'bids.update') {
+      // payload: { bidId, amount?, message?, userId }
+      const p = payload as { bidId: string; amount?: number; message?: string; userId?: string };
+      if (!p.userId) throw new Error('unauthenticated');
+      const bid = store.bids.find((b) => b.id === p.bidId);
+      if (!bid) throw new Error('bid not found');
+      if (bid.bidderId !== p.userId) throw new Error('not authorized');
+      if (bid.status === 'accepted' || bid.status === 'rejected') throw new Error('cannot update finalized bid');
+      if (typeof p.amount === 'number') bid.amount = p.amount;
+      if (typeof p.message === 'string') bid.message = p.message;
+      bid.updatedAt = new Date().toISOString();
+      writeStore();
+      return bid;
+    }
+
+    if (name === 'bids.listByGig') {
+      // payload: { gigId, userId }
+      const p = payload as { gigId: string; userId?: string };
+      const gig = store.gigs.find((g) => g.id === p.gigId);
+      if (!gig) return [];
+      if (p.userId && p.userId === (gig as any).authorId) {
+        // poster: see all bids
+        return store.bids.filter((b) => b.gigId === p.gigId).slice().reverse();
+      }
+      if (p.userId) {
+        // bidder: see own bids
+        return store.bids.filter((b) => b.gigId === p.gigId && b.bidderId === p.userId).slice().reverse();
+      }
+      // unauthenticated or other user: empty list
+      return [];
+    }
+
+    if (name === 'bids.listByUser') {
+      // payload: { userId }
+      const p = payload as { userId?: string };
+      if (!p.userId) return [];
+      return store.bids.filter((b) => b.bidderId === p.userId).slice().reverse();
+    }
+
+    if (name === 'bids.counter') {
+      // payload: { bidId, counterAmount, message?, userId }
+      const p = payload as { bidId: string; counterAmount: number; message?: string; userId?: string };
+      if (!p.userId) throw new Error('unauthenticated');
+      const bid = store.bids.find((b) => b.id === p.bidId);
+      if (!bid) throw new Error('bid not found');
+      const gig = store.gigs.find((g) => g.id === bid.gigId);
+      if (!gig) throw new Error('gig not found');
+      if ((gig as any).authorId !== p.userId) throw new Error('not authorized');
+      bid.status = 'countered';
+      bid.counterAmount = p.counterAmount;
+      if (typeof p.message === 'string') bid.message = p.message;
+      bid.updatedAt = new Date().toISOString();
+      writeStore();
+      return bid;
+    }
+
+    if (name === 'bids.accept') {
+      // payload: { bidId, userId }
+      const p = payload as { bidId: string; userId?: string };
+      if (!p.userId) throw new Error('unauthenticated');
+      const bid = store.bids.find((b) => b.id === p.bidId);
+      if (!bid) throw new Error('bid not found');
+      const gig = store.gigs.find((g) => g.id === bid.gigId);
+      if (!gig) throw new Error('gig not found');
+      if ((gig as any).authorId !== p.userId) throw new Error('not authorized');
+      bid.status = 'accepted';
+      bid.updatedAt = new Date().toISOString();
+      // add ledger entry placeholder to indicate acceptance
+      const ledgerEntry = { id: `l_${Date.now()}`, type: 'bid_accepted', bidId: bid.id, amount: bid.amount, meta: {} };
+      store.ledger.push(ledgerEntry);
+      // also create a pending charge/claim (simulate calling claims.createCharge)
+      const charge = {
+        reference: `ps_local_${Date.now()}`,
+        amount: bid.amount,
+        status: 'pending',
+        metadata: { bidId: bid.id, gigId: bid.gigId },
+      } as any;
+      store.charges.push(charge);
+      // record a hold ledger entry to mirror claims.createCharge behavior
+      store.ledger.push({ id: `l_${Date.now()}_hold`, type: 'hold', amount: charge.amount, ref: charge.reference, meta: { bidId: bid.id } });
+      writeStore();
+      return bid;
+    }
+
+    if (name === 'bids.reject') {
+      // payload: { bidId, userId }
+      const p = payload as { bidId: string; userId?: string };
+      if (!p.userId) throw new Error('unauthenticated');
+      const bid = store.bids.find((b) => b.id === p.bidId);
+      if (!bid) throw new Error('bid not found');
+      const gig = store.gigs.find((g) => g.id === bid.gigId);
+      if (!gig) throw new Error('gig not found');
+      if ((gig as any).authorId !== p.userId) throw new Error('not authorized');
+      bid.status = 'rejected';
+      bid.updatedAt = new Date().toISOString();
+      writeStore();
+      return bid;
     }
 
     if (name === 'claims.createCharge') {

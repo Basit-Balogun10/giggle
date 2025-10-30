@@ -1,0 +1,31 @@
+name: Convex function tests
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  convex-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install pnpm
+        run: npm install -g pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Install Convex CLI
+        run: npm install -g convex
+      - name: Configure Convex env
+        env:
+          CONVEX_TEST_URL: ${{ secrets.CONVEX_TEST_URL }}
+          CONVEX_TEST_SERVER_KEY: ${{ secrets.CONVEX_TEST_SERVER_KEY }}
+        run: |
+          npx convex env set CONVEX_SERVER_KEY $CONVEX_TEST_SERVER_KEY
+          npx convex env set CONVEX_URL $CONVEX_TEST_URL
+      - name: Run server tests (includes localConvex tests)
+        run: pnpm --filter @giggle/server test

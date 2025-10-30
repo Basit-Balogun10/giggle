@@ -1,4 +1,5 @@
 import { Controller, Post, Body, HttpCode, HttpStatus, Inject } from '@nestjs/common';
+import { Public } from './public.decorator';
 import { ClaimsService } from './claims.service';
 import type { ClaimGigDTO } from '../../common/src/types';
 import type { PaystackChargeData } from '../../common/src/payments';
@@ -8,6 +9,7 @@ export class ClaimsController {
   constructor(@Inject('ClaimsService') private readonly claimsService: ClaimsService) {}
 
   @Post()
+  @Public()
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() payload: ClaimGigDTO): Promise<PaystackChargeData> {
     // For now, treat payout as the charge amount; in a real flow we'd lookup the gig

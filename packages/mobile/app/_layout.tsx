@@ -11,6 +11,8 @@ import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { ThemeProvider as UIThemeProvider } from '@/components/ui/theme';
+import ConvexProvider from '@/convex/ConvexProvider';
+import { AuthProvider } from '@/convex/useAuthClient';
 import { ErrorBoundary } from '@/components/error-boundary';
 
 // Prevent the splash screen from auto-hiding
@@ -39,13 +41,17 @@ export default function RootLayout() {
       <GestureHandlerRootView style={{ flex: 1 }}>
         <BottomSheetModalProvider>
           <UIThemeProvider>
-            <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+            <ConvexProvider>
+              <AuthProvider>
+                <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
               <Stack>
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                 <Stack.Screen name="+not-found" />
               </Stack>
               <StatusBar style="auto" />
-            </ThemeProvider>
+                </ThemeProvider>
+              </AuthProvider>
+            </ConvexProvider>
           </UIThemeProvider>
         </BottomSheetModalProvider>
       </GestureHandlerRootView>

@@ -12,9 +12,41 @@
     "allowSyntheticDefaultImports": true,
     "noEmit": true,
     "moduleResolution": "node",
+  "baseUrl": ".",
     "paths": {
       "@/*": [
-        "./*"
+        "src/*",
+        "components/*",
+        "../../*"
+      ],
+      "@components/*": [
+        "components/*",
+        "src/components/*",
+        "../../components/*"
+      ],
+      "@/components/*": [
+        "components/*",
+        "src/components/*"
+      ],
+      "@hooks/*": [
+        "src/hooks/*",
+        "hooks/*",
+        "../../hooks/*"
+      ]
+      ,
+      "@/hooks/*": [
+        "hooks/*",
+        "src/hooks/*"
+      ],
+      "@/constants/*": [
+        "constants/*",
+        "src/constants/*",
+        "../../constants/*"
+      ]
+      ,
+      "@/ui/*": [
+        "ui/*",
+        "src/ui/*"
       ]
     }
   },
@@ -23,7 +55,13 @@
     "**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts",
-    "nativewind-env.d.ts"
+    "nativewind-env.d.ts",
+    "components/**/*",
+    "src/components/**/*",
+    "hooks/**/*",
+    "../../components/**/*",
+    "../../hooks/**/*",
+    "../../constants/**/*"
   ],
   "exclude": [
     "node_modules",

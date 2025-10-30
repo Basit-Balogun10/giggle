@@ -31,7 +31,7 @@ export function Select({
 }: SelectProps) {
   const [isOpen, setIsOpen] = React.useState(false);
   const [dropdownPosition, setDropdownPosition] = React.useState({ top: 0, left: 0, width: 0 });
-  const triggerRef = React.useRef<View>(null);
+  const triggerRef = React.useRef<any>(null);
 
   const handleSelect = (option: SelectOption) => {
     onValueChange?.(option);
@@ -41,7 +41,7 @@ export function Select({
   const handleOpen = () => {
     if (disabled || !triggerRef.current) return;
     
-    triggerRef.current.measure((x, y, width, height, pageX, pageY) => {
+    triggerRef.current.measure((x: number, y: number, width: number, height: number, pageX: number, pageY: number) => {
       setDropdownPosition({
         top: pageY + height + 2,
         left: pageX,

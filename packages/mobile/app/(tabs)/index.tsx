@@ -1,7 +1,13 @@
 import React from 'react';
 import { View, Pressable } from 'react-native';
 import { getOptimisticGigs, subscribeOptimisticGigs } from '../../src/optimisticGigs';
+import { getOptimisticBids, subscribeOptimisticBids } from '../../src/optimisticBids';
+import BidModal from '@/ui/bid-modal';
+import { addOptimisticBid, replaceOptimisticBid, removeOptimisticBid } from '../../src/optimisticBids';
+import { Alert } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useAuthClient } from '@/convex/useAuthClient';
+import fetchWithAuth from '@/network/fetchWithAuth';
 import {
   Badge,
   Button,
@@ -74,6 +80,8 @@ const MOCK_GIGS: Gig[] = [
 ];
 
 export default function FeedScreen() {
+  const [bidModalVisible, setBidModalVisible] = React.useState(false);
+  const [bidGigId, setBidGigId] = React.useState<string | null>(null);
   const [gigs, setGigs] = React.useState<Gig[]>(() => [...MOCK_GIGS]);
   const [selectedTag, setSelectedTag] = React.useState<string | null>(null);
   const [searchQuery, setSearchQuery] = React.useState<string>('');
@@ -88,7 +96,7 @@ export default function FeedScreen() {
     let mounted = true;
     (async () => {
       try {
-        const res = await fetch('http://localhost:3333/api/gigs/tags');
+        const res = await fetchWithAuth('http://localhost:3333/api/gigs/tags');
         if (!res.ok) return;
         const data = await res.json();
         if (!mounted) return;
@@ -108,8 +116,8 @@ export default function FeedScreen() {
       if (filters?.q) params.append('q', filters.q);
       if (typeof filters?.minPayout === 'number') params.append('min', String(filters?.minPayout));
       if (typeof filters?.maxPayout === 'number') params.append('max', String(filters?.maxPayout));
-      const url = `http://localhost:3333/api/gigs${params.toString() ? `?${params.toString()}` : ''}`;
-      const res = await fetch(url);
+  const url = `http://localhost:3333/api/gigs${params.toString() ? `?${params.toString()}` : ''}`;
+  const res = await fetchWithAuth(url);
       if (!res.ok) return;
       const data = await res.json();
       // merge optimistic gigs at top
@@ -128,11 +136,77 @@ export default function FeedScreen() {
     const unsub = subscribeOptimisticGigs((ogs: any[]) => {
       setGigs((prev) => [...ogs, ...MOCK_GIGS.filter((m) => !ogs.find((o) => o.id === m.id))]);
     });
+    // subscribe to optimistic bids as well and force a refresh/merge into gigs
+    const initialBids = getOptimisticBids();
+    if (initialBids.length) {
+      // ensure optimistic bids show up in UI by forcing state update
+      setGigs((prev) => [...getOptimisticGigs(), ...prev]);
+    }
+    const unsubBids = subscribeOptimisticBids((obs) => {
+      // trigger a re-render so gig cards can show optimistic bids
+      setGigs((prev) => [...prev]);
+    });
     // initial fetch from server
     fetchGigs();
-    return () => { mounted = false; unsub(); };
+    return () => { mounted = false; unsub(); unsubBids(); };
   }, []);
   const router = useRouter();
+  // Local demo state for the interactive UI examples
+  const [switchValue, setSwitchValue] = React.useState(false);
+  const [checkboxValue, setCheckboxValue] = React.useState(false);
+  const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [sheetOpen, setSheetOpen] = React.useState(false);
+  const [drawerOpen, setDrawerOpen] = React.useState(false);
+  const [tablePage, setTablePage] = React.useState(0);
+  const [tablePageSize, setTablePageSize] = React.useState(5);
+
+  function openBidModal(gigId: string) {
+    setBidGigId(gigId);
+    setBidModalVisible(true);
+  }
+
+  const { user } = useAuthClient();
+
+  async function handleSubmitBid(payload: { amount: number; message?: string }) {
+    // Keep amounts in kobo as agreed. Use the authenticated user's id if signed in.
+    if (!user) {
+      // navigate to auth if the user isn't signed in
+      router.push('/(auth)/sign-in');
+      return;
+    }
+    const userId = user.id;
+    const tempId = `temp_bid_${Date.now()}`;
+    const tempBid = {
+      id: tempId,
+      gigId: bidGigId as string,
+      bidderId: userId,
+      amount: payload.amount,
+      message: payload.message,
+      status: 'pending' as const,
+      createdAt: new Date().toISOString(),
+    };
+    // optimistic add
+    addOptimisticBid(tempBid);
+
+    try {
+      const res = await fetchWithAuth(`http://localhost:3333/api/gigs/${encodeURIComponent(bidGigId as string)}/bids`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: payload.amount, message: payload.message }),
+      });
+      if (!res.ok) {
+        throw new Error('failed');
+      }
+      const real = await res.json();
+      // reconcile optimistic
+      replaceOptimisticBid(tempId, real);
+      Alert.alert('Bid sent', 'Your bid was submitted');
+    } catch (e) {
+      // remove optimistic
+      removeOptimisticBid(tempId);
+      Alert.alert('Bid failed', 'Could not submit your bid.');
+    }
+  }
 
   return (
     <SafeAreaView edges={["top"]} className="flex-1">
@@ -142,6 +216,26 @@ export default function FeedScreen() {
           {/* Filters */}
           <View className="mb-4">
             <Input placeholder="Search gigs" value={searchQuery} onChangeText={(t) => setSearchQuery(t)} />
+            {/* Autocomplete suggestions for tags (client-side + server-backed merged list) */}
+            {searchQuery.length > 0 && (
+              <View className="flex-row flex-wrap gap-2 mt-2 mb-2">
+                {availableTags
+                  .filter((t) => t.toLowerCase().includes(searchQuery.toLowerCase()) && t !== selectedTag)
+                  .slice(0, 6)
+                  .map((sug) => (
+                    <Pressable
+                      key={sug}
+                      onPress={() => {
+                        setSelectedTag(sug);
+                        setSearchQuery('');
+                        fetchGigs({ tag: sug, q: undefined, minPayout: minPayout ? Number(minPayout) : undefined, maxPayout: maxPayout ? Number(maxPayout) : undefined });
+                      }}
+                      className="px-3 py-1 rounded-full bg-muted">
+                      <Text>{sug}</Text>
+                    </Pressable>
+                  ))}
+              </View>
+            )}
             <View className="flex-row gap-2 mt-2">
               {availableTags.map((t) => (
                 <Pressable
@@ -162,7 +256,17 @@ export default function FeedScreen() {
                 <Input placeholder="Max payout (kobo)" value={maxPayout} onChangeText={setMaxPayout} keyboardType="numeric" />
               </View>
               <View>
-                <Button onPress={() => fetchGigs({ tag: selectedTag ?? undefined, q: searchQuery || undefined, minPayout: minPayout ? Number(minPayout) : undefined, maxPayout: maxPayout ? Number(maxPayout) : undefined })}>Apply Filters</Button>
+                <View className="flex-row gap-2">
+                  <Button onPress={() => fetchGigs({ tag: selectedTag ?? undefined, q: searchQuery || undefined, minPayout: minPayout ? Number(minPayout) : undefined, maxPayout: maxPayout ? Number(maxPayout) : undefined })}>Apply Filters</Button>
+                  <Button variant="secondary" onPress={() => {
+                    // Clear all filters
+                    setSelectedTag(null);
+                    setSearchQuery('');
+                    setMinPayout('');
+                    setMaxPayout('');
+                    fetchGigs();
+                  }}>Clear Filters</Button>
+                </View>
               </View>
             </View>
           </View>
@@ -768,8 +872,17 @@ if (status !== "granted") {
                   <Text variant="h3">{gig.title}</Text>
                   {gig.description ? <Text className="text-muted">{gig.description}</Text> : null}
                   <Text className="mt-2">₦{(gig.payout / 100).toLocaleString()}</Text>
+                  {/* Show optimistic bids for this gig (if any) */}
+                  {getOptimisticBids().filter((b) => b.gigId === gig.id).map((ob) => (
+                    <View key={ob.id} className="mt-2 p-2 bg-muted rounded-md">
+                      <Text className="font-semibold">Your bid (sending): ₦{(ob.amount / 100).toLocaleString()}</Text>
+                      {ob.message ? <Text className="text-muted">{ob.message}</Text> : null}
+                    </View>
+                  ))}
                 </View>
                 <View className="justify-center">
+                  <Button onPress={() => openBidModal(gig.id)} className="mb-2">Offer</Button>
+                  <Button onPress={() => router.push(`/gig-bids/${gig.id}`)} className="mb-2">Manage</Button>
                   <Button>Claim</Button>
                 </View>
               </View>
@@ -777,11 +890,16 @@ if (status !== "granted") {
           </Card>
         ))}
 
+        <BidModal visible={bidModalVisible} onClose={() => setBidModalVisible(false)} gigId={bidGigId ?? ''} onSubmit={handleSubmitBid} />
+
         <View className="h-32" />
       </ScrollView>
 
       <Pressable onPress={() => router.push('post')} className="absolute bottom-8 right-6 bg-primary p-4 rounded-full shadow-lg">
         <Text className="text-white font-bold">Post</Text>
+      </Pressable>
+      <Pressable onPress={() => router.push('/my-bids')} className="absolute bottom-8 left-6 bg-secondary p-3 rounded-full shadow-lg">
+        <Text className="text-white font-bold">My Bids</Text>
       </Pressable>
     </SafeAreaView>
   );

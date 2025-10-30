@@ -2,7 +2,7 @@
 // When ready, add `convex` package to server via pnpm and initialize the client with server-side key
 
 import { Injectable, Logger } from '@nestjs/common';
-import type { CreateGigDTO, Gig } from '../../common/src/types';
+import type { CreateGigDTO, Gig, Bid, CreateBidDTO, UpdateBidDTO } from '../../common/src/types';
 
 type ConvexLike = {
   mutation?: (name: string, payload?: unknown) => Promise<unknown>;
@@ -101,5 +101,69 @@ export class ConvexService {
 
     // Fallback: return empty or filtered stub list from an in-memory source if available
     return [];
+  }
+
+  // Bids
+  async createBid(payload: CreateBidDTO & { userId?: string }): Promise<Bid> {
+    const client = this.getClient();
+    if (client && typeof client.mutation === 'function') {
+      const result = await client.mutation('bids.create', payload);
+      return result as unknown as Bid;
+    }
+    throw new Error('Convex client not available');
+  }
+
+  async updateBid(payload: { bidId: string; amount?: number; message?: string; userId?: string }): Promise<Bid> {
+    const client = this.getClient();
+    if (client && typeof client.mutation === 'function') {
+      const result = await client.mutation('bids.update', payload);
+      return result as unknown as Bid;
+    }
+    throw new Error('Convex client not available');
+  }
+
+  async listBidsByGig(gigId: string, userId?: string): Promise<Bid[]> {
+    const client = this.getClient();
+    if (client && typeof client.mutation === 'function') {
+      const result = await client.mutation('bids.listByGig', { gigId, userId });
+      return result as unknown as Bid[];
+    }
+    return [];
+  }
+
+  async listBidsByUser(userId?: string): Promise<Bid[]> {
+    const client = this.getClient();
+    if (client && typeof client.mutation === 'function') {
+      const result = await client.mutation('bids.listByUser', { userId });
+      return result as unknown as Bid[];
+    }
+    return [];
+  }
+
+  async counterBid(payload: { bidId: string; counterAmount: number; message?: string; userId?: string }): Promise<Bid> {
+    const client = this.getClient();
+    if (client && typeof client.mutation === 'function') {
+      const result = await client.mutation('bids.counter', payload);
+      return result as unknown as Bid;
+    }
+    throw new Error('Convex client not available');
+  }
+
+  async acceptBid(payload: { bidId: string; userId?: string }): Promise<Bid> {
+    const client = this.getClient();
+    if (client && typeof client.mutation === 'function') {
+      const result = await client.mutation('bids.accept', payload);
+      return result as unknown as Bid;
+    }
+    throw new Error('Convex client not available');
+  }
+
+  async rejectBid(payload: { bidId: string; userId?: string }): Promise<Bid> {
+    const client = this.getClient();
+    if (client && typeof client.mutation === 'function') {
+      const result = await client.mutation('bids.reject', payload);
+      return result as unknown as Bid;
+    }
+    throw new Error('Convex client not available');
   }
 }

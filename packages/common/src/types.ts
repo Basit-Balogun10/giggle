@@ -21,3 +21,28 @@ export interface ClaimGigDTO {
   gigId: string;
   userId: string;
 }
+
+export type BidStatus = 'pending' | 'countered' | 'accepted' | 'rejected';
+
+export interface Bid {
+  id: string;
+  gigId: string;
+  bidderId: string;
+  amount: number; // in kobo
+  message?: string;
+  status: BidStatus;
+  counterAmount?: number;
+  createdAt: string; // ISO timestamp
+  updatedAt: string;
+}
+
+export interface CreateBidDTO {
+  gigId: string;
+  amount: number;
+  message?: string;
+}
+
+export interface UpdateBidDTO {
+  amount?: number;
+  message?: string;
+}

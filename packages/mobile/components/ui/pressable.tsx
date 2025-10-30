@@ -6,7 +6,7 @@ export interface PressableProps extends RNPressableProps {
   className?: string;
 }
 
-const Pressable = React.forwardRef<RNPressable, PressableProps>(
+const Pressable = React.forwardRef<React.ComponentRef<typeof RNPressable>, PressableProps>(
   ({ className, style, ...props }, ref) => {
     return (
       <RNPressable

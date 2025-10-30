@@ -2,10 +2,10 @@
   "gigs": [],
   "ledger": [
     {
-      "id": "l_1761737707120",
+      "id": "l_1761825174238",
       "type": "hold",
       "amount": 500,
-      "ref": "ps_local_1761737707120",
+      "ref": "ps_local_1761825174238",
       "meta": {
         "gigId": "g1"
       }
@@ -13,12 +13,23 @@
   ],
   "charges": [
     {
-      "reference": "ps_local_1761737707120",
+      "reference": "ps_local_1761825174238",
       "amount": 500,
       "status": "pending",
       "metadata": {
         "gigId": "g1"
       }
+    }
+  ],
+  "bids": [
+    {
+      "id": "bid_1761825173979_898",
+      "gigId": "local-1761825173977-856",
+      "bidderId": "bidder1",
+      "amount": 500,
+      "status": "accepted",
+      "createdAt": "2025-10-30T11:52:53.979Z",
+      "updatedAt": "2025-10-30T11:52:53.980Z"
     }
   ]
 }
