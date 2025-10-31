@@ -1,5 +1,5 @@
 // Convex ledger and charge helpers using the new Convex function syntax.
-import { internalMutation } from './_generated/server';
+import { internalMutation } from '../_generated/server';
 import { v } from 'convex/values';
 
 export const recordLedgerEntry = internalMutation({

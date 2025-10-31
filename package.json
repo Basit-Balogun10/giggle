@@ -9,7 +9,9 @@
     "bootstrap": "pnpm -w install",
     "clean": "rimraf node_modules && rimraf packages/*/node_modules"
   },
-  "dependencies": {
-    "@convex-dev/auth": "^0.0.90"
+  "devDependencies": {
+    "@convex-dev/auth": "^0.0.90",
+    "convex": "^1.28.0",
+    "resend": "^6.3.0"
   }
 }

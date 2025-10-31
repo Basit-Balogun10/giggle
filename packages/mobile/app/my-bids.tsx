@@ -1,47 +1,23 @@
 import React from 'react';
-import { View, Pressable, Alert } from 'react-native';
+import { View } from 'react-native';
 import { Text, Button, Card, CardContent } from '@/components/ui';
 import { useRouter } from 'expo-router';
 import { useAuthClient } from '@/convex/useAuthClient';
-import fetchWithAuth from '@/network/fetchWithAuth';
+import { useQuery } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
 
 export default function MyBidsScreen() {
   const [bids, setBids] = React.useState<any[]>([]);
-  const [loading, setLoading] = React.useState(false);
+  
   const router = useRouter();
 
   const { user } = useAuthClient();
-
+  const convexBids = useQuery((api as any).functions?.bids?.listByUser as any, { userId: user?.id } as any);
   React.useEffect(() => {
-    let mounted = true;
-    let cancelled = false;
-
-    async function load() {
-      setLoading(true);
-      try {
-        if (!user) {
-          setLoading(false);
-          return;
-        }
-  const res = await fetchWithAuth('http://localhost:3333/api/bids/me', { headers: {} });
-        if (!res.ok) return;
-        const data = await res.json();
-        if (!mounted || cancelled) return;
-        setBids(Array.isArray(data) ? data : []);
-      } catch {
-        // ignore
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+    if (Array.isArray(convexBids)) {
+      setBids(convexBids as any[]);
     }
-
-    load();
-    const interval = setInterval(() => {
-      load();
-    }, 5000);
-
-    return () => { mounted = false; cancelled = true; clearInterval(interval); };
-  }, []);
+  }, [convexBids]);
 
   return (
     <View style={{ flex: 1 }}>

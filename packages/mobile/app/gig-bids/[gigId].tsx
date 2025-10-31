@@ -1,70 +1,51 @@
-import React from "react";
-import { View, Alert } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useAuthClient } from "@/convex/useAuthClient";
-import fetchWithAuth from "@/network/fetchWithAuth";
-import { Text, Button, Card, CardContent } from "@/components/ui";
-import CounterModal from "@/ui/counter-modal";
-import StatusChip from "@/components/ui/status-chip";
-import { subscribeOptimisticBids } from "../../src/optimisticBids";
+import React from 'react';
+import { View, Alert } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useAuthClient } from '@/convex/useAuthClient';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../../../../convex/_generated/api';
+import { Text, Button, Card, CardContent } from '@/components/ui';
+import StatusChip from '@/components/ui/status-chip';
+import CounterModal from '@/ui/counter-modal';
+import { subscribeOptimisticBids } from '../../src/optimisticBids';
 
 export default function GigBidsScreen() {
   const { gigId } = useLocalSearchParams();
   const router = useRouter();
   const gid = Array.isArray(gigId) ? gigId[0] : gigId;
   const [bids, setBids] = React.useState<any[]>([]);
-  const [loading, setLoading] = React.useState(false);
+  // loading state intentionally omitted; convex subscriptions update UI
   const [counterModalOpen, setCounterModalOpen] = React.useState(false);
   const [activeBidId, setActiveBidId] = React.useState<string | null>(null);
 
   const { user } = useAuthClient();
+  const convexBids = useQuery((api as any).functions?.bids?.listByGig as any, { gigId: gid } as any);
+  const acceptMut = useMutation((api as any).functions?.bids?.acceptBid as any);
+  const rejectMut = useMutation((api as any).functions?.bids?.rejectBid as any);
+  const counterMut = useMutation((api as any).functions?.bids?.counterBid as any);
 
   React.useEffect(() => {
-    let mounted = true;
-    (async () => {
-      setLoading(true);
-      try {
-        if (!user) {
-          // Not signed in — navigate to sign-in
-          // We intentionally don't block rendering here but return early
-          setLoading(false);
-          return;
-        }
-        const res = await fetchWithAuth(
-          `http://localhost:3333/api/gigs/${encodeURIComponent(
-            gid ?? ""
-          )}/bids`,
-          {
-            headers: {},
-          }
-        );
-        if (!res.ok) return;
-        const data = await res.json();
-        if (!mounted) return;
-        setBids(Array.isArray(data) ? data : []);
-      } catch {
-        // ignore
-      } finally {
-        setLoading(false);
+  let mounted = true;
+    try {
+      if (Array.isArray(convexBids)) {
+        setBids(convexBids as any[]);
       }
-    })();
+    } catch {
+      // ignore
+    }
 
     // subscribe to optimistic bids and merge any that belong to this gig
     const unsub = subscribeOptimisticBids((obs) => {
       if (!mounted) return;
       const relevant = obs.filter((o) => o.gigId === gigId);
       setBids((prev) => {
-        // avoid duplication: keep existing real bids and prepend optimistic ones that aren't present
         const existingIds = new Set(prev.map((p) => p.id));
         const newOnes = relevant.filter((r) => !existingIds.has(r.id));
         return [...newOnes, ...prev];
       });
     });
-    return () => {
-      mounted = false;
-      unsub();
-    };
-  }, [gigId, user]);
+    return () => { mounted = false; unsub(); };
+  }, [convexBids, gigId]);
 
   async function doAccept(bidId: string) {
     try {
@@ -75,18 +56,9 @@ export default function GigBidsScreen() {
         );
         return;
       }
-      const res = await fetchWithAuth(
-        `http://localhost:3333/api/bids/${encodeURIComponent(bidId)}/accept`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({}),
-        }
-      );
-      if (!res.ok) throw new Error("failed");
-      const updated = await res.json();
-      setBids((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
-      Alert.alert("Accepted", "Bid accepted");
+      const updated = await acceptMut({ bidId } as any);
+      setBids((prev) => prev.map((b) => (String(b.id) === String(updated._id ?? updated.id) ? (updated as any) : b)));
+      Alert.alert('Accepted', 'Bid accepted');
     } catch {
       Alert.alert("Error", "Could not accept bid");
     }
@@ -94,23 +66,10 @@ export default function GigBidsScreen() {
 
   async function doReject(bidId: string) {
     try {
-      if (!user)
-        return Alert.alert(
-          "Not signed in",
-          "Please sign in as the poster to reject bids"
-        );
-      const res = await fetchWithAuth(
-        `http://localhost:3333/api/bids/${encodeURIComponent(bidId)}/reject`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({}),
-        }
-      );
-      if (!res.ok) throw new Error("failed");
-      const updated = await res.json();
-      setBids((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
-      Alert.alert("Rejected", "Bid rejected");
+      if (!user) return Alert.alert('Not signed in', 'Please sign in as the poster to reject bids');
+      const updated = await rejectMut({ bidId } as any);
+      setBids((prev) => prev.map((b) => (String(b.id) === String(updated._id ?? updated.id) ? (updated as any) : b)));
+      Alert.alert('Rejected', 'Bid rejected');
     } catch {
       Alert.alert("Error", "Could not reject bid");
     }
@@ -121,23 +80,10 @@ export default function GigBidsScreen() {
     payload: { counterAmount: number; message?: string }
   ) {
     try {
-      if (!user)
-        return Alert.alert(
-          "Not signed in",
-          "Please sign in as the poster to send counters"
-        );
-      const res = await fetchWithAuth(
-        `http://localhost:3333/api/bids/${encodeURIComponent(bidId)}/counter`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        }
-      );
-      if (!res.ok) throw new Error("failed");
-      const updated = await res.json();
-      setBids((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
-      Alert.alert("Counter sent", "Counter-offer sent to bidder");
+      if (!user) return Alert.alert('Not signed in', 'Please sign in as the poster to send counters');
+      const updated = await counterMut({ bidId, counterAmount: payload.counterAmount, message: payload.message } as any);
+      setBids((prev) => prev.map((b) => (String(b.id) === String(updated._id ?? updated.id) ? (updated as any) : b)));
+      Alert.alert('Counter sent', 'Counter-offer sent to bidder');
     } catch {
       Alert.alert("Error", "Could not send counter");
     }

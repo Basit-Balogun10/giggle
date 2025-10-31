@@ -64,13 +64,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Convex-backed implementations
   async function sendOtp(phone: string) {
-    const convexAuth = await import("@convex-dev/auth/react");
-    if (!convexAuth || typeof (convexAuth as any).signIn !== "function") {
-      throw new Error(
-        "Convex Auth signIn not available. Ensure @convex-dev/auth/react is installed and up to date."
-      );
+    try {
+      const convexAuth = await import('@convex-dev/auth/react');
+      if (convexAuth && typeof (convexAuth as any).signIn === 'function') {
+        await (convexAuth as any).signIn({ phone });
+        return;
+      }
+      throw new Error('Convex Auth signIn not available');
+    } catch (err) {
+      console.error('sendOtp: Convex Auth not available or failed', err);
+      throw err;
     }
-    await (convexAuth as any).signIn({ phone });
   }
 
   async function verifyOtp(code: string) {

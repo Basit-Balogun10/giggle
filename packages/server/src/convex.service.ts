@@ -10,6 +10,11 @@ import type {
   UpdateBidDTO,
 } from "../../common/src/types";
 
+import { devConvex } from './convex.dev';
+import { localConvex } from './convex.functions';
+// Try to import Convex server client statically — package should be installed in workspace
+import convexServer from 'convex/server';
+
 type ConvexLike = {
   mutation?: (name: string, payload?: unknown) => Promise<unknown>;
 };
@@ -27,24 +32,38 @@ export class ConvexService {
   private getClient(): ConvexLike | null {
     if (this.client) return this.client;
     try {
-      // Dynamically require Convex server client. The import shape may vary across
-      // Convex versions — prefer the official server export.
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const convex = require("convex/server") as unknown;
-      if (convex && typeof (convex as any).mutation === "function") {
-        this.client = convex as ConvexLike;
-        this.logger.log("Convex client loaded");
+      // Support a developer-friendly local shim: set USE_CONVEX_DEV_SHIM=1 to use
+      // the in-repo dev shim which provides a `mutation` function for common cases
+      // like `gigs.create` without needing a real Convex deployment.
+      if (process.env.USE_CONVEX_DEV_SHIM === '1') {
+        this.client = devConvex as unknown as ConvexLike;
+        this.logger.log('Using Convex dev shim (USE_CONVEX_DEV_SHIM=1)');
         return this.client;
       }
-      if (
-        (convex as any).default &&
-        typeof (convex as any).default.mutation === "function"
-      ) {
-        this.client = (convex as any).default as ConvexLike;
-        this.logger.log("Convex client loaded (default export)");
+
+      // Support an alternative local functions module that behaves like Convex
+      // server functions. Enable with USE_CONVEX_LOCAL_FUNCTIONS=1 during dev.
+      if (process.env.USE_CONVEX_LOCAL_FUNCTIONS === '1') {
+        this.client = localConvex as unknown as ConvexLike;
+        this.logger.log('Using local Convex functions (USE_CONVEX_LOCAL_FUNCTIONS=1)');
         return this.client;
       }
-      this.logger.error("Convex package found but mutation API not detected");
+
+      // Use statically imported convex server client if it exposes mutation
+      if (convexServer && typeof (convexServer as any).mutation === 'function') {
+        this.client = convexServer as ConvexLike;
+        this.logger.log('Convex client loaded');
+        return this.client;
+      }
+
+      // Some Convex versions export a default with mutation
+      if ((convexServer as any).default && typeof (convexServer as any).default.mutation === 'function') {
+        this.client = (convexServer as any).default as ConvexLike;
+        this.logger.log('Convex client loaded (default export)');
+        return this.client;
+      }
+
+      this.logger.warn('Convex package found but mutation API not detected');
       this.client = null;
       return null;
     } catch (err) {

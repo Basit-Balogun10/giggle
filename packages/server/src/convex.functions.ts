@@ -27,8 +27,9 @@ const store: {
 function readStore() {
   try {
     if (fs.existsSync(STORE_PATH)) {
-      const raw = fs.readFileSync(STORE_PATH, "utf8");
-      const parsed = JSON.parse(raw) as any;
+      const raw = fs.readFileSync(STORE_PATH, 'utf8');
+      // dev-data.json may or may not include bids; ensure we return a complete shape
+      const parsed = JSON.parse(raw) as { gigs?: Gig[]; ledger?: any[]; charges?: PaystackChargeData[]; bids?: Bid[] };
       return {
         gigs: parsed.gigs ?? [],
         ledger: parsed.ledger ?? [],

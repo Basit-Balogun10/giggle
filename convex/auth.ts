@@ -31,49 +31,64 @@
 // to a simple dev-token scheme (dev:<userId>). The AuthGuard calls
 // `isAuthenticated(token)` to verify Bearer tokens.
 
-export async function isAuthenticated(
-  token: string
-): Promise<{ id: string } | null> {
-  if (!token) return null;
+// Try to wire up Convex Auth server helpers using `@convex-dev/auth/server` and the
+// Resend provider implemented in `convex/ResendOTP.ts`. If the auth package is not
+// available, fall back to a simple dev-token scheme so local development continues.
 
-  // Strict Convex-only auth: require @convex-dev/auth/server to be installed
-  // and use its verification helpers. If it's not available, throw a clear
-  // error so the deploy/dev environment is configured correctly.
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const convexAuthModule = require("@convex-dev/auth/server");
-    // Common helper names: verifyToken or verify — try them.
-    if (convexAuthModule) {
-      if (typeof convexAuthModule.verifyToken === "function") {
-        const result = await convexAuthModule.verifyToken(token);
-        if (result && result.id) return { id: result.id };
-      }
-      if (typeof convexAuthModule.verify === "function") {
-        const result = await convexAuthModule.verify(token);
-        if (result && result.id) return { id: result.id };
-      }
-    }
+// The `@convex-dev/auth` package types may vary between versions. Use a
+// local any alias to avoid hard compile-time type coupling during merges.
+type AuthProvider = any;
 
-    // If a Convex server-side function export is present in convex/functions/auth,
-    // call it to verify tokens (some setups expose verification via functions).
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const convexFn = require("./functions/auth") as any;
-    if (convexFn && typeof convexFn.verify === "function") {
-      const r = await convexFn.verify(token);
-      if (r && r.id) return { id: r.id };
-    }
+let serverExports: any = null;
 
-    throw new Error(
-      "Convex Auth is installed but no verification helper returned a user id"
-    );
-  } catch (err: any) {
-    // Re-throw with a clearer message for maintainers.
-    throw new Error(
-      `Convex Auth verification failed: ${
-        err?.message || String(err)
-      }. Ensure @convex-dev/auth is installed and configured.`
-    );
-  }
+try {
+	// dynamic require to avoid hard dependency errors when editing locally without installing
+	// but prefer the package when available.
+	// eslint-disable-next-line @typescript-eslint/no-var-requires
+	const { convexAuth } = require('@convex-dev/auth/server');
+	// Try to load ResendOTP provider (safe export from convex/ResendOTP)
+	// eslint-disable-next-line @typescript-eslint/no-var-requires
+	const { ResendOTP } = require('./ResendOTP');
+
+	const providers: AuthProvider[] = [];
+	if (ResendOTP) providers.push(ResendOTP);
+
+	// Initialize convexAuth with our providers and default options.
+	serverExports = convexAuth({ providers });
+} catch (err) {
+	// missing package; leave serverExports null to fall back to dev tokens below
 }
 
-export {};
+export async function isAuthenticated(token: string): Promise<{ id: string } | null> {
+	if (!token) return null;
+	// Quick dev token support: 'dev:alice' -> { id: 'alice' }
+	if (token.startsWith('dev:')) return { id: token.substring(4) };
+
+	if (!serverExports) return null;
+
+	try {
+		// serverExports may expose verify or verifyToken
+		if (typeof serverExports.verify === 'function') {
+			const r = await serverExports.verify(token);
+			if (r && r.id) return { id: r.id };
+		}
+		if (typeof serverExports.verifyToken === 'function') {
+			const r = await serverExports.verifyToken(token);
+			if (r && r.id) return { id: r.id };
+		}
+		// Some versions export `auth` with a `verify` function
+		if (serverExports.auth && typeof serverExports.auth.verify === 'function') {
+			const r = await serverExports.auth.verify(token);
+			if (r && r.id) return { id: r.id };
+		}
+	} catch (err: any) {
+		// verification failed — fall through to null
+		return null;
+	}
+
+	return null;
+}
+
+// Re-export server helpers when available for direct use in Convex functions
+export const authExports = serverExports;
+

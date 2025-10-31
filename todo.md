@@ -2,92 +2,64 @@
 
 This file mirrors the managed todo list used by the development agent. Keep this file in sync with the in-memory todo list.
 
-- [x] Fix mobile TypeScript issues
-  - Run `pnpm --filter @giggle/mobile exec tsc --noEmit` and fix remaining TypeScript errors in the mobile package until the typecheck is clean.
-- [x] Remove defensive fallback & add DI sanity test
-  - Remove runtime fallback in `gigs.controller.ts` and add `test/di.sanity.spec.ts` to check DI wiring.
-- [x] Wire Convex: implement gigs.create mutation (dev shim)
-  - Add minimal Convex dev shim so `ConvexService` can call `mutation('gigs.create', ...)`.
-- [x] Implement claim/payment endpoints (Paystack charge creation)
-  - Add `ClaimsController` POST `/api/claims` returning a pending Paystack charge placeholder and tests.
-    [-] Mobile design system & theme
-  - Add theme tokens, hooks, ThemeProvider, and NativeWind/Tailwind tokens.
-  - Progress:
-    - ✅ SlideBackgroundPicker migrated to use tokens
-    - ✅ ReelSlides migrated to use tokens
-    - ✅ ReelComposer migrated to use tokens
-    - Remaining: counter-modal, auth screens, inputs, switches
-  - Today's subtasks:
-    - [x] Run ESLint across `@giggle/mobile` and fix lint issues
-    - [x] Migrate inputs & switches to theme tokens
-  - Next subtasks (in-progress):
-    - [x] Status chips & badges
-    - [-] Post slide background presets & color picker (in-progress)
-- [ ] Navigation structure (tabs & modal)
+# Todo List
+
+This file is kept in sync with the agent-managed todo list. It represents the current work queue and priorities.
+
+- [-] Resolve Git merge conflicts
+  - Resolve all merge conflicts from `git pull origin main`. Files include Convex functions, server controllers, mobile Convex client, pnpm lockfile, and `todo.md`. Prefer incoming Convex-first changes while preserving local mobile UI tokens and important local fixes. Commit the merge.
+- [ ] Run pnpm install and regenerate lockfile
+  - After resolving `package.json`/dependency changes, run `pnpm install` to update `pnpm-lock.yaml` and ensure workspace consistency.
+- [ ] Run TypeScript checks
+  - Run `pnpm --filter @giggle/mobile exec tsc --noEmit` and `pnpm --filter @giggle/server exec tsc --noEmit` to catch typing errors introduced by the merge.
+- [ ] Quick lint & smoke
+  - Run a focused lint check and smoke-run the mobile app and server to catch runtime issues (expo start, server start).
+- [ ] Commit merged results and push
+  - Commit resolved files with a clear message and push to the feature branch (or open a PR as preferred).
+
+-- Mobile design system & theme (continued)
+  - Add theme tokens, hooks, ThemeProvider, and migrate remaining components (counter-modal, auth screens, inputs, switches).
+
+-- Navigation structure (tabs & modal)
   - Bottom tabs: Feed, Post (modal), Wallet, Profile; route wiring under `app/(tabs)`.
-- [x] Feed screen (UI + data)
-  - Feed with infinite scroll, gig cards, skeletons and server/Convex wiring.
-- [x] Post modal & CreateGig flow
-- Post modal UI, form validation, call server `POST /api/gigs`, optimistic UI update.
-- [ ] Convex: server-side functions and schema
+
+-- Feed screen (UI + data)
+  - Feed with infinite scroll, gig cards, skeletons and Convex wiring.
+
+-- Post modal & CreateGig flow
+  - Post modal UI, form validation, call `api.functions.gigs.createGig` (Convex), optimistic UI update.
+
+-- Convex: server-side functions and schema
   - Create Convex functions/mutations (gigs CRUD, claims, ledger) and types.
-- [ ] Convex: mobile client integration
-  - Install Convex in mobile, read subscriptions, fallback to server API if needed.
-- [ ] Auth (Convex-backed)
+
+-- Convex: mobile client integration
+  - Install Convex in mobile, read subscriptions, mobile sign-in & token storage.
+
+-- Auth (Convex-backed)
   - Implement auth flows and link users to Convex records.
-- [ ] Claim flow & Paystack (server)
+
+-- Claim flow & Paystack (server)
   - Endpoints to create Paystack charge/escrow and manage claim lifecycle.
-- [x] Paystack webhook validation & handling
+
+-- Paystack webhook validation & handling
   - Raw-body HMAC-SHA512 validation and webhook controller added.
-- [ ] Wallet & ledger
+
+-- Wallet & ledger
   - Wallet model, ledger entries, top-ups, holds, and balance calculation.
-- [ ] Ratings & Trust layer
-  - Ratings model, verification badges, dispute flow, admin endpoints.
-- [ ] In-app chat (optional)
-  - Optional realtime chat integration for communication.
-- [ ] Notifications (Expo Push)
-  - Push notifications for claim/payment updates via Expo.
-- [ ] KYC stub & admin tools
-  - Admin endpoints and simple KYC stub for MVP.
-- [ ] Testing: unit, integration & E2E
-  - Expand tests and add E2E harness for server+mobile flows.
-- [x] CI & build: mobile production (EAS)
-  - GitHub Actions workflow for EAS builds added.
-- [x] CI & build: server production
-  - Server CI workflow added (tests/lint/build artifact).
-- [ ] Deploy to Render (artifact or build)
-  - Optional GH Action for Render deployment or build instructions.
-- [ ] Security & hardening
-  - Input validation, rate limiting, CORS, secrets handling.
-- [ ] Monitoring & logging
-  - Add Sentry/structured logs and metrics/health endpoints.
-- [ ] Accessibility & polish
-  - Accessibility fixes, contrast, touch sizes, animations.
-- [ ] Docs, runbooks & secrets guidance
-  - README, QUICK_START, env examples and secrets guidance.
-- [ ] Linting, pre-commit hooks & 'no-any' enforcement
-  - ESLint rules to ban `any`, Husky pre-commit hooks.
-- [ ] USSD companion (stretch)
-  - Plan/implement a USSD fallback for feature phones (stretch).
-- [ ] Release & demo prep
-  - Prepare demo build, sample data and walkthrough script.
-    [-] Reels-style full-screen feed with slides (IN-PROGRESS)
-  - Implement a full-screen 'reels' feed where each post is full-screen and can contain multiple slides navigable by swipe/tap with slide indicators (WhatsApp-status style).
-- [x] Post slide background presets & color picker
-  - Allow each slide/post to choose background color from beautiful presets and a subtle color picker for custom choices.
 
---
-Generated/updated by the development assistant to keep local `todo.md` in sync with the managed todo list.
+-- Status chips & badges
+  - Token-aware `StatusChip`/`Badge` components.
 
-# Giggle long-term todo
+-- Reels & slide presets
+  - Post slide background presets & color picker; reels-style full-screen feed with slides.
 
-This file is the authoritative, long-term todo list for the project. Do not overwrite without updating the manage_todo_list tool.
+-- Misc / long-term
+  - Ratings, KYC/admin stubs, testing, CI, deploy, monitoring, accessibility.
 
-|   # | Title                                                        |                      Status | One-line description                                                                                                                                                      |
-| --: | ------------------------------------------------------------ | --------------------------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-|   1 | Remove defensive fallback & add DI sanity test               |                ✅ Completed | Remove runtime fallback in `gigs.controller.ts` and add `test/di.sanity.spec.ts` to check DI wiring.                                                                      |
-|   2 | Wire Convex: implement gigs.create mutation (dev shim)       |                ✅ Completed | Add minimal Convex dev shim so `ConvexService` can call `mutation('gigs.create', ...)`.                                                                                   |
-|   3 | Implement claim/payment endpoints (Paystack charge creation) |                ✅ Completed | Add `ClaimsController` POST `/api/claims` returning a pending Paystack charge placeholder and tests.                                                                      |
+-- Notes
+  - `todo.md` and the manage_todo_list state are authoritative — keep them in sync.
+  - Immediate next steps: finish merge, regenerate lockfile, run type checks.
+
 |   4 | Mobile design system & theme                                 |              ⛳ In progress | Add theme tokens, hooks, ThemeProvider, and NativeWind/Tailwind tokens.                                                                                                   |
 |   5 | Navigation structure (tabs & modal)                          |              ⬜ Not started | Bottom tabs: Feed, Post (modal), Wallet, Profile; route wiring under `app/(tabs)`.                                                                                        |
 |   6 | Feed screen (UI + data)                                      |                ✅ Completed | Feed with infinite scroll, gig cards, skeletons and server/Convex wiring.                                                                                                 |
