@@ -1,15 +1,20 @@
-import React from 'react';
-import { View, TextInput, ScrollView, ActivityIndicator } from 'react-native';
-import { Button, Text } from '@/components/ui';
-import SlideBackgroundPicker from '@/ui/reels/SlideBackgroundPicker';
-import ReelView from '@/ui/reels/ReelView';
-import { useRouter } from 'expo-router';
-import fetchWithAuth from '@/network/fetchWithAuth';
-import { addOptimisticGig, replaceOptimisticGig, removeOptimisticGigById } from '../../src/optimisticGigs';
+import React from 'react'
+import { View, TextInput, ScrollView, ActivityIndicator, Alert } from 'react-native'
+import { Button, Text } from '@/components/ui'
+import SlideBackgroundPicker from '@/ui/reels/SlideBackgroundPicker'
+import ReelView from '@/ui/reels/ReelView'
+import { defaultSlidePresets } from '../../src/ui/reels/slide-presets'
+import { useRouter } from 'expo-router'
+import fetchWithAuth from '@/network/fetchWithAuth'
+import { addOptimisticGig, replaceOptimisticGig, removeOptimisticGigById } from '../../src/optimisticGigs'
+import { useThemeTokens } from '../../components/ui/theme'
 
 export default function ReelComposer() {
+  const tokens = useThemeTokens()
+
+  const presets = defaultSlidePresets(tokens)
   const [slides, setSlides] = React.useState<{ id: string; text?: string; bg?: string }[]>([
-    { id: '1', text: '', bg: '#111827' },
+    { id: '1', text: '', bg: presets[0] ?? tokens.colors.background },
   ]);
   const [publishing, setPublishing] = React.useState(false);
   const scrollRef = React.useRef<ScrollView | null>(null);
@@ -50,7 +55,7 @@ export default function ReelComposer() {
       }
     } catch (err) {
       // remove optimistic on failure
-      // eslint-disable-next-line no-console
+       
       console.error(err);
       Alert.alert('Publish failed');
     }
@@ -73,7 +78,7 @@ export default function ReelComposer() {
             placeholder="Text"
             value={s.text}
             onChangeText={(t) => updateSlide(i, { text: t })}
-            style={{ borderWidth: 1, borderColor: '#ddd', padding: 8, borderRadius: 8, marginTop: 8 }}
+            style={{ borderWidth: 1, borderColor: tokens.colors.muted, padding: 8, borderRadius: 8, marginTop: 8 }}
           />
           <SlideBackgroundPicker value={s.bg} onChange={(c) => updateSlide(i, { bg: c })} />
           <View style={{ flexDirection: 'row', marginTop: 8, gap: 8 }}>
@@ -84,9 +89,9 @@ export default function ReelComposer() {
         </View>
       ))}
 
-      <Button
+          <Button
         onPress={() => {
-          const newSlide = { id: String(Date.now()), text: '', bg: '#111827' };
+          const newSlide = { id: String(Date.now()), text: '', bg: presets[0] ?? tokens.colors.background };
           setSlides((p) => {
             const next = [...p, newSlide];
             // slight delay to wait for layout, then scroll to bottom
@@ -100,7 +105,7 @@ export default function ReelComposer() {
 
       <View style={{ marginTop: 12 }}>
         <Button onPress={publish} disabled={publishing || slides.length === 0}>
-          {publishing ? <ActivityIndicator color="#fff" /> : 'Publish'}
+          {publishing ? <ActivityIndicator color={tokens.colors.text} /> : 'Publish'}
         </Button>
       </View>
     </ScrollView>

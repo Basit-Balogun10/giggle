@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Platform, Linking } from "react-native";
+import { View, Platform, Linking , Alert, Pressable } from "react-native";
 import {
   SafeAreaView,
   ScrollView,
@@ -20,7 +20,7 @@ import * as Notifications from "expo-notifications";
 import * as Clipboard from 'expo-clipboard';
 import { Camera, MapPin, Image, Users, Bell } from "lucide-react-native";
 import { iconWithClassName } from "@/components/ui/lib/icons/icon-with-classname";
-import { Alert, Pressable } from "react-native";
+
 
 const CameraIcon = iconWithClassName(Camera);
 const MapPinIcon = iconWithClassName(MapPin);

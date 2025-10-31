@@ -8,7 +8,7 @@ import {
   type PressableProps 
 } from "react-native";
 import { cn } from "./utils/cn";
-import { useColorScheme } from "./utils/use-color-scheme";
+import { useThemeTokens } from "./theme";
 
 interface SwitchProps extends Omit<PressableProps, "onPress"> {
   checked?: boolean;
@@ -21,13 +21,17 @@ const Switch = React.forwardRef<
   any,
   SwitchProps
 >(({ className, checked = false, onCheckedChange, disabled, children, ...props }, ref) => {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const tokens = useThemeTokens();
+  const handlePress = React.useCallback(() => {
+    if (!disabled && onCheckedChange) {
+      onCheckedChange(!checked);
+    }
+  }, [checked, onCheckedChange, disabled]);
 
   // Use native Switch on Android, custom on Web
   if (Platform.OS === "android") {
-    // Extract only valid Switch props
-    const { style, ...validSwitchProps } = props as any;
+    // Extract only style to forward to native switch
+    const { style } = props as any;
     return (
       <RNSwitch
         ref={ref}
@@ -35,21 +39,16 @@ const Switch = React.forwardRef<
         onValueChange={onCheckedChange}
         disabled={disabled}
         trackColor={{
-          false: isDark ? "#374151" : "#e5e7eb",
-          true: isDark ? "#6366f1" : "#4f46e5",
+          false: tokens.colors.surface,
+          true: tokens.colors.secondary,
         }}
-        thumbColor={checked ? (isDark ? "#f3f4f6" : "#ffffff") : (isDark ? "#9ca3af" : "#d1d5db")}
+        thumbColor={checked ? tokens.colors.surface : tokens.colors.muted}
         style={style}
       />
     );
   }
 
   // Web implementation
-  const handlePress = React.useCallback(() => {
-    if (!disabled && onCheckedChange) {
-      onCheckedChange(!checked);
-    }
-  }, [checked, onCheckedChange, disabled]);
 
   return (
     <Pressable

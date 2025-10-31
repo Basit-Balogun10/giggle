@@ -8,5 +8,8 @@
   "scripts": {
     "bootstrap": "pnpm -w install",
     "clean": "rimraf node_modules && rimraf packages/*/node_modules"
+  },
+  "dependencies": {
+    "@convex-dev/auth": "^0.0.90"
   }
 }

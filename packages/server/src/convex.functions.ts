@@ -17,7 +17,13 @@ function readStore() {
   try {
     if (fs.existsSync(STORE_PATH)) {
       const raw = fs.readFileSync(STORE_PATH, 'utf8');
-      return JSON.parse(raw) as { gigs: Gig[]; ledger: any[]; charges: PaystackChargeData[] };
+      const parsed = JSON.parse(raw) as any;
+      return {
+        gigs: parsed.gigs ?? [],
+        ledger: parsed.ledger ?? [],
+        charges: parsed.charges ?? [],
+        bids: parsed.bids ?? [],
+      };
     }
   } catch (e) {
     // ignore parse errors and fall through to default
@@ -220,6 +226,8 @@ export const localConvex = {
     return null;
   },
 
-  // expose store for tests/debugging
-  _store: store,
+  // localConvex shim is intentionally removed — projects should call Convex
+  // functions via a deployed Convex instance. If you encounter code that
+  // still imports/uses `localConvex`, update it to call Convex directly.
+  _store: undefined as any,
 };

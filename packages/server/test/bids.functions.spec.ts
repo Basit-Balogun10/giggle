@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { localConvex } from '../src/convex.functions';
+// Use the in-test mock helper which provides an in-memory localConvex API
+import { localConvexMock as localConvex } from './helpers/localConvexMock';
 
 describe('localConvex bids functions', () => {
   beforeEach(() => {

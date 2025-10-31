@@ -1,6 +1,6 @@
-import { Tabs } from "expo-router";
+import { Tabs, useRouter } from "expo-router";
 import React from "react";
-import { Platform } from "react-native";
+import { Platform, Pressable } from "react-native";
 
 import { HapticTab } from "@/components/HapticTab";
 import { IconSymbol } from "@/components/ui/IconSymbol";
@@ -10,6 +10,7 @@ import { useColorScheme } from "@/hooks/useColorScheme";
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const router = useRouter();
 
   return (
     <Tabs
@@ -46,12 +47,51 @@ export default function TabLayout() {
           ),
         }}
       />
+      
+      {/* Post button: opens the /post screen as a modal */}
+      <Tabs.Screen
+        name="post"
+        options={{
+          title: "Post",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="plus" color={color} />
+          ),
+          // Use a custom tabBarButton to navigate to the root /post route as a modal
+          tabBarButton: (props) => (
+            <Pressable
+              accessibilityLabel="Create post"
+              onPress={() => router.push('/post')}
+              style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <IconSymbol size={28} name="plus" color={Colors[colorScheme ?? 'light'].tint} />
+            </Pressable>
+          ),
+        }}
+      />
       <Tabs.Screen
         name="permissions-demo"
         options={{
           title: "Permissions",
           tabBarIcon: ({ color }) => (
             <IconSymbol size={22} name="checkmark.shield.fill" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="wallet"
+        options={{
+          title: "Wallet",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={22} name="paperplane.fill" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: "Profile",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={22} name="chevron.right" color={color} />
           ),
         }}
       />

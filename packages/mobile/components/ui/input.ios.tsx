@@ -1,5 +1,6 @@
 import * as React from "react";
 import { TextInput, type TextInputProps } from "react-native";
+import { useThemeTokens } from "./theme";
 import { cn } from "./utils/cn";
 
 interface InputProps extends TextInputProps {}
@@ -8,6 +9,8 @@ const Input = React.forwardRef<
   React.ElementRef<typeof TextInput>,
   InputProps
 >(({ className, placeholderClassName, ...props }, ref) => {
+  const tokens = useThemeTokens();
+
   return (
     <TextInput
       ref={ref}
@@ -19,8 +22,8 @@ const Input = React.forwardRef<
         className
       )}
       placeholderClassName={cn("text-muted-foreground", placeholderClassName)}
-      placeholderTextColor="#9ca3af"
-      selectionColor="#3b82f6"
+      placeholderTextColor={tokens.colors.muted}
+      selectionColor={tokens.colors.secondary}
       {...props}
     />
   );

@@ -1,6 +1,7 @@
-import React from 'react';
-import { View, ScrollView, Dimensions, Pressable } from 'react-native';
-import { Text } from '@/components/ui';
+import React from 'react'
+import { View, ScrollView, Dimensions, Pressable } from 'react-native'
+import { Text } from '@/components/ui'
+import { useThemeTokens } from '../../../components/ui/theme'
 
 const { width, height } = Dimensions.get('window');
 
@@ -16,6 +17,7 @@ export default function ReelSlides({
   const [index, setIndex] = React.useState(0);
   const [paused, setPaused] = React.useState(false);
   const [liked, setLiked] = React.useState(false);
+  const tokens = useThemeTokens()
   const scrollRef = React.useRef<ScrollView | null>(null);
   const indexRef = React.useRef(index);
 
@@ -61,8 +63,8 @@ export default function ReelSlides({
         }}
       >
         {slides.map((s) => (
-          <View key={s.id} style={{ width, height, backgroundColor: s.bg ?? '#000', justifyContent: 'center', alignItems: 'center' }}>
-            <Text className="text-white text-2xl">{s.text}</Text>
+          <View key={s.id} style={{ width, height, backgroundColor: s.bg ?? tokens.colors.background, justifyContent: 'center', alignItems: 'center' }}>
+            <Text style={{ color: tokens.colors.text, fontSize: 20 }}>{s.text}</Text>
           </View>
         ))}
       </ScrollView>
@@ -84,8 +86,8 @@ export default function ReelSlides({
       {/* Overlay controls: like & share */}
       <View style={{ position: 'absolute', right: 16, top: height / 3, alignItems: 'center' }}>
         <Pressable onPress={() => setLiked((v) => !v)} style={{ marginBottom: 12 }}>
-          <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: liked ? '#ef4444' : '#ffffff22', justifyContent: 'center', alignItems: 'center' }}>
-            <Text style={{ color: liked ? '#fff' : '#fff' }}>{liked ? '♥' : '♡'}</Text>
+          <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: liked ? tokens.colors.error : `${tokens.colors.text}22`, justifyContent: 'center', alignItems: 'center' }}>
+            <Text style={{ color: '#fff' }}>{liked ? '♥' : '♡'}</Text>
           </View>
         </Pressable>
         <Pressable onPress={() => { /* TODO: share sheet */ }}>
@@ -98,7 +100,7 @@ export default function ReelSlides({
       <View style={{ position: 'absolute', bottom: 40, left: 0, right: 0, alignItems: 'center' }}>
         <View style={{ flexDirection: 'row' }}>
           {slides.map((s, i) => (
-            <View key={s.id} style={{ width: i === index ? 28 : 10, height: 6, borderRadius: 3, backgroundColor: i === index ? '#fff' : '#ffffff66', marginHorizontal: 4 }} />
+            <View key={s.id} style={{ width: i === index ? 28 : 10, height: 6, borderRadius: 3, backgroundColor: i === index ? tokens.colors.text : `${tokens.colors.text}66`, marginHorizontal: 4 }} />
           ))}
         </View>
       </View>

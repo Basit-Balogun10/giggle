@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { localConvex } from '../src/convex.functions';
+import { localConvexMock as localConvex } from './helpers/localConvexMock';
 
 describe('localConvex bids acceptance -> ledger/charge integration', () => {
   beforeEach(() => {

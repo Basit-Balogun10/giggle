@@ -14,43 +14,29 @@ export class AuthGuard implements CanActivate {
     ]);
     const req = context.switchToHttp().getRequest();
 
-    // Priority 1: Authorization header (Bearer token) — attempt to validate via
-    // Convex Auth if the project has it wired. This is a best-effort dynamic require
-    // so tests and local dev without Convex keep working.
-    try {
-      const authHeader = req.headers?.authorization || req.headers?.Authorization;
-      if (authHeader && typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
-        const token = authHeader.split(' ')[1];
-          // Dev token shortcut: 'dev:<userId>' — avoid requiring Convex packages in tests
-          if (typeof token === 'string' && token.startsWith('dev:')) {
-            req.user = { id: token.substring(4) };
-          } else {
-            try {
-              // Attempt to call a Convex-auth provided verifier if present. The file
-              // `convex/auth.ts` should export `isAuthenticated` when Convex Auth is
-              // configured. This is a non-breaking, optional integration.
-              // Path is relative to packages/server/src -> ../../../convex/auth
-              // eslint-disable-next-line @typescript-eslint/no-var-requires
-              const convexAuth = require('../../../convex/auth');
-              if (convexAuth && typeof convexAuth.isAuthenticated === 'function') {
-                const user = await convexAuth.isAuthenticated(token);
-                if (user && user.id) {
-                  req.user = { id: user.id };
-                }
-              }
-            } catch (e) {
-              // No convex auth present or call failed — continue to other fallbacks.
-            }
-          }
+    // Priority: Authorization header (Bearer token) — validate via Convex Auth.
+    const authHeader = req.headers?.authorization || req.headers?.Authorization;
+    if (authHeader && typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      try {
+        // Require the Convex auth verifier implemented in `convex/auth.ts`.
+        // This project prioritizes Convex for auth; missing Convex auth should
+        // be treated as a configuration error.
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const convexAuth = require('../../../convex/auth');
+        if (!convexAuth || typeof convexAuth.isAuthenticated !== 'function') {
+          throw new Error('convex/auth.isAuthenticated not available');
+        }
+        const user = await convexAuth.isAuthenticated(token);
+        if (user && user.id) {
+          req.user = { id: user.id };
+        }
+      } catch (e: any) {
+        // Log a clear error; for non-public routes missing/invalid tokens will
+        // cause an UnauthorizedException below.
+        // eslint-disable-next-line no-console
+        console.error('Convex auth verification error:', e?.message || e);
       }
-    } catch (e) {
-      // Ignore errors while attempting Convex auth integration
-    }
-
-    // Fallback: dev header `x-user-id` for quick local auth during development
-    const headerUser = req.headers?.['x-user-id'];
-    if (headerUser && !req.user) {
-      req.user = { id: headerUser };
     }
 
     // If route is public, allow it (we may have attached user info above if present)

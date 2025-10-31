@@ -1,10 +1,11 @@
 import React from 'react';
-import { View, Pressable, Alert } from 'react-native';
+import { View, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuthClient } from '@/convex/useAuthClient';
 import fetchWithAuth from '@/network/fetchWithAuth';
 import { Text, Button, Card, CardContent } from '@/components/ui';
 import CounterModal from '@/ui/counter-modal';
+import StatusChip from '@/components/ui/status-chip';
 import { subscribeOptimisticBids } from '../../src/optimisticBids';
 
 export default function GigBidsScreen() {
@@ -129,9 +130,8 @@ export default function GigBidsScreen() {
                 </View>
                 <View>
                   {/* Status badge */}
-                  <View style={{ backgroundColor: b.status === 'accepted' ? '#10B981' : b.status === 'rejected' ? '#EF4444' : b.status === 'countered' ? '#F59E0B' : '#6B7280', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 16 }}>
-                    <Text style={{ color: 'white', fontWeight: '700' }}>{String(b.status).toUpperCase()}</Text>
-                  </View>
+                  {/* Use centralized token-aware StatusChip so colors follow theme */}
+                  <StatusChip status={b.status} />
                 </View>
               </View>
 

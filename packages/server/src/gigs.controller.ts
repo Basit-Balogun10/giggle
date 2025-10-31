@@ -26,16 +26,10 @@ export class GigsController {
 
   @Get('tags')
   async listTags() {
-    let gigs: any[] = [];
-    if (this.convex && typeof (this.convex as any).listGigs === 'function') {
-      gigs = await (this.convex as any).listGigs();
-    } else if (process.env.NODE_ENV === 'test') {
-      // test-time fallback to localConvex functions to avoid fragile DI in some test setups
-      // (keeps behavior deterministic for integration tests where ConvexService is mocked differently)
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const { localConvex } = require('./convex.functions');
-      gigs = (await localConvex.mutation('gigs.list')) as any[];
+    if (!this.convex || typeof (this.convex as any).listGigs !== 'function') {
+      throw new Error('ConvexService not available. Ensure ConvexService is provided and Convex is configured.');
     }
+    const gigs = await (this.convex as any).listGigs();
     const tagSet = new Set<string>();
     for (const g of gigs) {
       const tags = (g as any).tags as string[] | undefined;
@@ -48,15 +42,8 @@ export class GigsController {
   async create(@Body() payload: CreateGigDTO): Promise<Gig> {
     try {
       // Use injected ConvexService instance (no runtime fallback here for production).
-      // In test environments the Nest testing harness may create request handlers such
-      // that do not have the provider wired in some edge cases; allow a test-only
-      // fallback to avoid brittle failures in CI/local tests.
-      let service: ConvexService | undefined = this.convex;
-      if (!service && process.env.NODE_ENV === 'test') {
-        service = new ConvexService();
-        this.logger.warn('Using test-only ConvexService fallback in GigsController');
-      }
-      const result = await service!.createGig(payload);
+      if (!this.convex) throw new Error('ConvexService not injected');
+      const result = await this.convex.createGig(payload);
       return result;
     } catch (err) {
       this.logger.error('Error creating gig', err as Error);

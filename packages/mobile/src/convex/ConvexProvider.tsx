@@ -33,7 +33,7 @@ export default function ConvexProvider({ children }: Props) {
         try {
           const convexAuthReact = await import('@convex-dev/auth/react');
           AuthProvider = convexAuthReact.ConvexAuthProvider || null;
-        } catch (_) {
+  } catch {
           AuthProvider = null;
         }
 
@@ -48,7 +48,7 @@ export default function ConvexProvider({ children }: Props) {
               setItem: (k: string, v: string) => SecureStore.setItemAsync(k, v),
               removeItem: (k: string) => SecureStore.deleteItemAsync(k),
             };
-          } catch (_) {
+          } catch {
             // leave storage undefined — the auth provider will fall back to in-memory/localStorage where available
             storage = undefined;
           }
@@ -59,6 +59,11 @@ export default function ConvexProvider({ children }: Props) {
             </ConvexReactProvider>
           );
 
+          // Improve dev ergonomics: provide a displayName for the wrapper
+          try {
+            Wrapper.displayName = 'ConvexAuthWrapper';
+          } catch (_) {}
+
           setReadyWrapper(() => Wrapper);
           return;
         }
@@ -67,14 +72,21 @@ export default function ConvexProvider({ children }: Props) {
         const WrapperNoAuth: React.FC<any> = ({ children: innerChildren }) => (
           <ConvexReactProvider client={client}>{innerChildren}</ConvexReactProvider>
         );
+        try {
+          WrapperNoAuth.displayName = 'ConvexWrapperNoAuth';
+  } catch {}
         setReadyWrapper(() => WrapperNoAuth);
         return;
-      } catch (err) {
+      } catch {
         // convex/react not installed — keep no-op
       }
 
       // No-op wrapper
-      setReadyWrapper(() => ({ children: c }: any) => <>{c}</>);
+      const NoOp: React.FC<any> = ({ children: c }: any) => <>{c}</>;
+      try {
+        NoOp.displayName = 'ConvexNoOpWrapper';
+      } catch (_) {}
+  setReadyWrapper(() => NoOp);
     })();
   }, []);
 

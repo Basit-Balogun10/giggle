@@ -1,10 +1,10 @@
 import React from 'react';
-import { View, Pressable } from 'react-native';
+import { View, Pressable , Alert } from 'react-native';
 import { getOptimisticGigs, subscribeOptimisticGigs } from '../../src/optimisticGigs';
-import { getOptimisticBids, subscribeOptimisticBids } from '../../src/optimisticBids';
+import { getOptimisticBids, subscribeOptimisticBids , addOptimisticBid, replaceOptimisticBid, removeOptimisticBid } from '../../src/optimisticBids';
 import BidModal from '@/ui/bid-modal';
-import { addOptimisticBid, replaceOptimisticBid, removeOptimisticBid } from '../../src/optimisticBids';
-import { Alert } from 'react-native';
+
+
 import { useRouter } from 'expo-router';
 import { useAuthClient } from '@/convex/useAuthClient';
 import fetchWithAuth from '@/network/fetchWithAuth';

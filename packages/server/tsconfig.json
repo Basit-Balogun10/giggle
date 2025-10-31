@@ -19,7 +19,7 @@
     "moduleResolution": "node",
     "baseUrl": "./",
     "paths": {
-      "@giggle/*": ["../packages/*/src/*"]
+      "@giggle/*": ["../packages/*/src"]
     }
   },
   "include": ["src/**/*"],

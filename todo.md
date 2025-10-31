@@ -10,13 +10,24 @@ This file mirrors the managed todo list used by the development agent. Keep this
   - Add minimal Convex dev shim so `ConvexService` can call `mutation('gigs.create', ...)`.
 - [x] Implement claim/payment endpoints (Paystack charge creation)
   - Add `ClaimsController` POST `/api/claims` returning a pending Paystack charge placeholder and tests.
-- [ ] Mobile design system & theme
+[-] Mobile design system & theme
   - Add theme tokens, hooks, ThemeProvider, and NativeWind/Tailwind tokens.
+  - Progress:
+    - ✅ SlideBackgroundPicker migrated to use tokens
+    - ✅ ReelSlides migrated to use tokens
+    - ✅ ReelComposer migrated to use tokens
+    - Remaining: counter-modal, auth screens, inputs, switches
+  - Today's subtasks:
+    - [x] Run ESLint across `@giggle/mobile` and fix lint issues
+    - [x] Migrate inputs & switches to theme tokens
+  - Next subtasks (in-progress):
+    - [x] Status chips & badges
+    - [-] Post slide background presets & color picker (in-progress)
 - [ ] Navigation structure (tabs & modal)
   - Bottom tabs: Feed, Post (modal), Wallet, Profile; route wiring under `app/(tabs)`.
 - [x] Feed screen (UI + data)
   - Feed with infinite scroll, gig cards, skeletons and server/Convex wiring.
-- [ ] Post modal & CreateGig flow
+ - [x] Post modal & CreateGig flow
   - Post modal UI, form validation, call server `POST /api/gigs`, optimistic UI update.
 - [ ] Convex: server-side functions and schema
   - Create Convex functions/mutations (gigs CRUD, claims, ledger) and types.
@@ -60,9 +71,9 @@ This file mirrors the managed todo list used by the development agent. Keep this
   - Plan/implement a USSD fallback for feature phones (stretch).
 - [ ] Release & demo prep
   - Prepare demo build, sample data and walkthrough script.
-- [ ] Reels-style full-screen feed with slides (IN-PROGRESS)
+[-] Reels-style full-screen feed with slides (IN-PROGRESS)
   - Implement a full-screen 'reels' feed where each post is full-screen and can contain multiple slides navigable by swipe/tap with slide indicators (WhatsApp-status style).
-- [ ] Post slide background presets & color picker
+- [x] Post slide background presets & color picker
   - Allow each slide/post to choose background color from beautiful presets and a subtle color picker for custom choices.
 
 --
@@ -76,7 +87,7 @@ This file is the authoritative, long-term todo list for the project. Do not over
 | 1 | Remove defensive fallback & add DI sanity test | ✅ Completed | Remove runtime fallback in `gigs.controller.ts` and add `test/di.sanity.spec.ts` to check DI wiring. |
 | 2 | Wire Convex: implement gigs.create mutation (dev shim) | ✅ Completed | Add minimal Convex dev shim so `ConvexService` can call `mutation('gigs.create', ...)`. |
 | 3 | Implement claim/payment endpoints (Paystack charge creation) | ✅ Completed | Add `ClaimsController` POST `/api/claims` returning a pending Paystack charge placeholder and tests. |
-| 4 | Mobile design system & theme | ⬜ Not started | Add theme tokens, hooks, ThemeProvider, and NativeWind/Tailwind tokens. |
+| 4 | Mobile design system & theme | ⛳ In progress | Add theme tokens, hooks, ThemeProvider, and NativeWind/Tailwind tokens. |
 | 5 | Navigation structure (tabs & modal) | ⬜ Not started | Bottom tabs: Feed, Post (modal), Wallet, Profile; route wiring under `app/(tabs)`. |
 | 6 | Feed screen (UI + data) | ✅ Completed | Feed with infinite scroll, gig cards, skeletons and server/Convex wiring. |
 | 7 | Post modal & CreateGig flow | ⬜ Not started | Post modal UI, form validation, call server `POST /api/gigs`, optimistic UI update. |
@@ -102,7 +113,11 @@ This file is the authoritative, long-term todo list for the project. Do not over
 | 27 | USSD companion (stretch) | ⬜ Not started | Plan/implement a USSD fallback for feature phones (stretch). |
 | 28 | Release & demo prep | ⬜ Not started | Prepare demo build, sample data and walkthrough script. |
 | 29 | Reels-style full-screen feed with slides | ⛳ In progress | Implement a full-screen 'reels' feed where each post is full-screen and can contain multiple slides navigable by swipe/tap with slide indicators (WhatsApp-status style). |
-| 30 | Post slide background presets & color picker | ⬜ Not started | Allow each slide/post to choose background color from beautiful presets and a subtle color picker for custom choices. |
+| 30 | Post slide background presets & color picker | ⛳ In progress | Allow each slide/post to choose background color from beautiful presets and a subtle color picker for custom choices. |
+| 31 | Status chips & badges | ✅ Completed | Create token-aware `StatusChip`/`Badge` components and update screens to use token colors for success/warn/error/neutral states. |
+| 29 | Reels-style full-screen feed with slides | ✅ Completed | Implement a full-screen 'reels' feed where each post is full-screen and can contain multiple slides navigable by swipe/tap with slide indicators (WhatsApp-status style). |
+| 30 | Post slide background presets & color picker | ✅ Completed | Allow each slide/post to choose background color from presets and a subtle color picker for custom choices. |
+| 31 | Status chips & badges | ✅ Completed | Create token-aware `StatusChip`/`Badge` components and update screens to use token colors for success/warn/error/neutral states. |
 
 ---
 
