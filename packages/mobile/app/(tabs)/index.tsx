@@ -1,4 +1,5 @@
 import React from 'react';
+import * as Clipboard from 'expo-clipboard';
 import { View, Pressable } from 'react-native';
 import { getOptimisticGigs, subscribeOptimisticGigs } from '../../src/optimisticGigs';
 import { getOptimisticBids, subscribeOptimisticBids } from '../../src/optimisticBids';
@@ -7,7 +8,8 @@ import { addOptimisticBid, replaceOptimisticBid, removeOptimisticBid } from '../
 import { Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthClient } from '@/convex/useAuthClient';
-import fetchWithAuth from '@/network/fetchWithAuth';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../../../../convex/_generated/api';
 import {
   Badge,
   Button,
@@ -61,6 +63,18 @@ type Gig = {
   createdAt: string;
 };
 
+// Narrowing helper: convert a Convex gig doc to the local `Gig` shape.
+function mapConvexGigToLocal(g: any): Gig {
+  return {
+    id: String(g._id ?? g.id),
+    title: g.title,
+    description: g.description ?? undefined,
+    payout: Number(g.payout),
+    location: g.location ?? undefined,
+    createdAt: new Date(Number(g.createdAt ?? g._creationTime)).toISOString(),
+  };
+}
+
 const MOCK_GIGS: Gig[] = [
   {
     id: '1',
@@ -91,48 +105,26 @@ export default function FeedScreen() {
   const SAMPLE_TAGS = ['design', 'dev', 'react', 'marketing'];
   const [availableTags, setAvailableTags] = React.useState<string[]>(SAMPLE_TAGS);
 
+  // Prefer Convex tags (no server fallback). Use Convex query to get tags.
+  const convexTags = useQuery(api.functions.gigs.listTags);
   React.useEffect(() => {
-    // fetch server-backed tags and merge with sample tags
-    let mounted = true;
-    (async () => {
-      try {
-        const res = await fetchWithAuth('http://localhost:3333/api/gigs/tags');
-        if (!res.ok) return;
-        const data = await res.json();
-        if (!mounted) return;
-        const merged = Array.from(new Set([...SAMPLE_TAGS, ...(Array.isArray(data) ? data : [])]));
-        setAvailableTags(merged);
-      } catch {
-        // ignore
-      }
-    })();
-    return () => { mounted = false; };
-  }, []);
+    const merged = Array.from(new Set([...(SAMPLE_TAGS || []), ...(Array.isArray(convexTags) ? convexTags : [])]));
+    setAvailableTags(merged);
+  }, [convexTags]);
 
-  async function fetchGigs(filters?: { tag?: string; q?: string; minPayout?: number; maxPayout?: number }) {
-    try {
-      const params = new URLSearchParams();
-      if (filters?.tag) params.append('tag', filters.tag);
-      if (filters?.q) params.append('q', filters.q);
-      if (typeof filters?.minPayout === 'number') params.append('min', String(filters?.minPayout));
-      if (typeof filters?.maxPayout === 'number') params.append('max', String(filters?.maxPayout));
-  const url = `http://localhost:3333/api/gigs${params.toString() ? `?${params.toString()}` : ''}`;
-  const res = await fetchWithAuth(url);
-      if (!res.ok) return;
-      const data = await res.json();
-      // merge optimistic gigs at top
-      const ogs = getOptimisticGigs();
-      setGigs((prev) => [...ogs, ...(Array.isArray(data) ? data : [])]);
-    } catch {
-      // ignore fetch errors in demo
-    }
-  }
+  // Convex-only gig listing. useQuery returns live subscription results.
+  const convexGigs = useQuery(api.functions.gigs.list, {
+    tag: selectedTag ?? undefined,
+    q: searchQuery || undefined,
+    minPayout: minPayout ? Number(minPayout) : undefined,
+    maxPayout: maxPayout ? Number(maxPayout) : undefined,
+  });
   React.useEffect(() => {
     // subscribe to optimistic gigs from Post flow
     let mounted = true;
-    // merge existing optimistic gigs at mount
-    const initial = getOptimisticGigs();
-    if (mounted && initial.length) setGigs((prev) => [...initial, ...prev]);
+  // merge existing optimistic gigs at mount
+  const initial = getOptimisticGigs();
+  if (mounted && initial.length) setGigs((prev) => [...initial, ...prev]);
     const unsub = subscribeOptimisticGigs((ogs: any[]) => {
       setGigs((prev) => [...ogs, ...MOCK_GIGS.filter((m) => !ogs.find((o) => o.id === m.id))]);
     });
@@ -146,10 +138,18 @@ export default function FeedScreen() {
       // trigger a re-render so gig cards can show optimistic bids
       setGigs((prev) => [...prev]);
     });
-    // initial fetch from server
-    fetchGigs();
+    // initial merge of optimistic gigs and Convex results (no server fallback)
+    if (convexGigs && convexGigs.length) {
+      const mapped = convexGigs.map(mapConvexGigToLocal);
+      setGigs((prev) => [...getOptimisticGigs(), ...mapped]);
+    }
     return () => { mounted = false; unsub(); unsubBids(); };
   }, []);
+
+  // Whenever convexGigs changes, merge optimistic gigs on top
+  React.useEffect(() => {
+    setGigs((prev) => [...getOptimisticGigs(), ...(Array.isArray(convexGigs) ? convexGigs.map(mapConvexGigToLocal) : prev)]);
+  }, [convexGigs]);
   const router = useRouter();
   // Local demo state for the interactive UI examples
   const [switchValue, setSwitchValue] = React.useState(false);
@@ -166,6 +166,8 @@ export default function FeedScreen() {
   }
 
   const { user } = useAuthClient();
+
+  const createBidMutation = useMutation(api.functions.bids.createBid as any);
 
   async function handleSubmitBid(payload: { amount: number; message?: string }) {
     // Keep amounts in kobo as agreed. Use the authenticated user's id if signed in.
@@ -189,20 +191,21 @@ export default function FeedScreen() {
     addOptimisticBid(tempBid);
 
     try {
-      const res = await fetchWithAuth(`http://localhost:3333/api/gigs/${encodeURIComponent(bidGigId as string)}/bids`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: payload.amount, message: payload.message }),
-      });
-      if (!res.ok) {
-        throw new Error('failed');
-      }
-      const real = await res.json();
-      // reconcile optimistic
-      replaceOptimisticBid(tempId, real);
+      // Call Convex mutation to create the bid (no server fallback)
+      const bidId = await createBidMutation({ gigId: bidGigId as string, amount: payload.amount, message: payload.message });
+      // Construct a minimal realBid to reconcile optimistic state
+      const real = {
+        id: String(bidId),
+        gigId: bidGigId as string,
+        bidderId: userId,
+        amount: payload.amount,
+        message: payload.message,
+        status: 'pending' as const,
+        createdAt: new Date().toISOString(),
+      };
+      replaceOptimisticBid(tempId, real as any);
       Alert.alert('Bid sent', 'Your bid was submitted');
     } catch (e) {
-      // remove optimistic
       removeOptimisticBid(tempId);
       Alert.alert('Bid failed', 'Could not submit your bid.');
     }
@@ -228,7 +231,7 @@ export default function FeedScreen() {
                       onPress={() => {
                         setSelectedTag(sug);
                         setSearchQuery('');
-                        fetchGigs({ tag: sug, q: undefined, minPayout: minPayout ? Number(minPayout) : undefined, maxPayout: maxPayout ? Number(maxPayout) : undefined });
+                        // Convex query is reactive — updating state will refresh results.
                       }}
                       className="px-3 py-1 rounded-full bg-muted">
                       <Text>{sug}</Text>
@@ -243,7 +246,7 @@ export default function FeedScreen() {
                   onPress={() => {
                     const next = selectedTag === t ? null : t;
                     setSelectedTag(next);
-                    fetchGigs({ tag: next ?? undefined, q: searchQuery || undefined, minPayout: minPayout ? Number(minPayout) : undefined, maxPayout: maxPayout ? Number(maxPayout) : undefined });
+                    // Convex query will re-run with new selectedTag
                   }}
                   className={`px-3 py-1 rounded-full ${selectedTag === t ? 'bg-primary' : 'bg-muted'}`}>
                   <Text className={`${selectedTag === t ? 'text-white' : ''}`}>{t}</Text>
@@ -257,14 +260,16 @@ export default function FeedScreen() {
               </View>
               <View>
                 <View className="flex-row gap-2">
-                  <Button onPress={() => fetchGigs({ tag: selectedTag ?? undefined, q: searchQuery || undefined, minPayout: minPayout ? Number(minPayout) : undefined, maxPayout: maxPayout ? Number(maxPayout) : undefined })}>Apply Filters</Button>
-                  <Button variant="secondary" onPress={() => {
+                  <Button onPress={() => {
+                    // Convex query depends on filter state; updating state above is enough to re-run.
+                  }}>Apply Filters</Button>
+                    <Button variant="secondary" onPress={() => {
                     // Clear all filters
                     setSelectedTag(null);
                     setSearchQuery('');
                     setMinPayout('');
                     setMaxPayout('');
-                    fetchGigs();
+                    // Convex query will reflect cleared filters automatically
                   }}>Clear Filters</Button>
                 </View>
               </View>

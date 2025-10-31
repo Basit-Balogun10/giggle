@@ -17,7 +17,14 @@ function readStore() {
   try {
     if (fs.existsSync(STORE_PATH)) {
       const raw = fs.readFileSync(STORE_PATH, 'utf8');
-      return JSON.parse(raw) as { gigs: Gig[]; ledger: any[]; charges: PaystackChargeData[] };
+      // dev-data.json may or may not include bids; ensure we return a complete shape
+      const parsed = JSON.parse(raw) as { gigs?: Gig[]; ledger?: any[]; charges?: PaystackChargeData[]; bids?: Bid[] };
+      return {
+        gigs: parsed.gigs ?? [],
+        ledger: parsed.ledger ?? [],
+        charges: parsed.charges ?? [],
+        bids: parsed.bids ?? [],
+      };
     }
   } catch (e) {
     // ignore parse errors and fall through to default

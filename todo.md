@@ -18,6 +18,8 @@ This file mirrors the managed todo list used by the development agent. Keep this
   - Feed with infinite scroll, gig cards, skeletons and server/Convex wiring.
 - [ ] Post modal & CreateGig flow
   - Post modal UI, form validation, call server `POST /api/gigs`, optimistic UI update.
+- [ ] Post slide background presets & color picker
+  - Allow each slide/post to choose background color from beautiful presets and a subtle color picker for custom choices.
 - [ ] Convex: server-side functions and schema
   - Create Convex functions/mutations (gigs CRUD, claims, ledger) and types.
 - [ ] Convex: mobile client integration
@@ -62,8 +64,6 @@ This file mirrors the managed todo list used by the development agent. Keep this
   - Prepare demo build, sample data and walkthrough script.
 - [ ] Reels-style full-screen feed with slides (IN-PROGRESS)
   - Implement a full-screen 'reels' feed where each post is full-screen and can contain multiple slides navigable by swipe/tap with slide indicators (WhatsApp-status style).
-- [ ] Post slide background presets & color picker
-  - Allow each slide/post to choose background color from beautiful presets and a subtle color picker for custom choices.
 
 --
 Generated/updated by the development assistant to keep local `todo.md` in sync with the managed todo list.

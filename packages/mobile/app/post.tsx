@@ -2,6 +2,8 @@ import React from 'react';
 import { Alert, Platform, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView, KeyboardAvoidingView, ScrollView, Text, Input, Label, Button } from '@/components/ui';
+import { useMutation } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
 import { addOptimisticGig, removeOptimisticGigById, replaceOptimisticGig } from '../src/optimisticGigs';
 
 type Gig = {
@@ -22,6 +24,7 @@ export default function PostScreen() {
   const [location, setLocation] = React.useState('');
   const [tags, setTags] = React.useState('');
   const [loading, setLoading] = React.useState(false);
+  const createMutation = useMutation(api.functions.gigs.createGig as any);
 
   const submit = async () => {
     if (!title || !payout) {
@@ -56,27 +59,25 @@ export default function PostScreen() {
         tags: tags ? tags.split(',').map((s) => s.trim()).filter(Boolean) : undefined,
       };
 
-      // NOTE: When testing on a physical device or emulator you may need to
-      // replace 'localhost' with your machine's LAN IP or use Expo tunnel.
-      const res = await fetch('http://localhost:3333/api/gigs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
+  const created = await createMutation(body as any);
 
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || `HTTP ${res.status}`);
-      }
-
-      const json = await res.json();
       // reconcile optimistic entry: replace temp with server-created gig
       try {
-        replaceOptimisticGig(tempId, json);
+        // map Convex returned shape to local shape
+        const real = {
+          id: String(created._id ?? created.id),
+          title: created.title,
+          description: created.description ?? undefined,
+          payout: Number(created.payout),
+          location: created.location ?? undefined,
+          tags: created.tags ?? undefined,
+          createdAt: new Date(Number(created.createdAt ?? created._creationTime)).toISOString(),
+        };
+        replaceOptimisticGig(tempId, real as any);
       } catch {
         /* ignore */
       }
-      Alert.alert('Success', `Created gig: ${json.id}`);
+      Alert.alert('Success', `Created gig`);
       router.back();
     } catch (err) {
       // remove optimistic gig on failure
@@ -137,6 +138,7 @@ export function PostModal() {
   const [form, setForm] = React.useState({ title: '', description: '', payout: '', location: '' });
   const [tags, setTags] = React.useState('');
   const [submitting, setSubmitting] = React.useState(false);
+  const create = useMutation(api.functions.gigs.createGig as any);
 
   function update<K extends keyof typeof form>(key: K, value: typeof form[K]) {
     setForm((s) => ({ ...s, [key]: value }));
@@ -156,22 +158,15 @@ export function PostModal() {
 
     setSubmitting(true);
     try {
-      const res = await fetch('http://localhost:3333/api/gigs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: form.title,
-          description: form.description,
-          payout: payoutInt,
-          location: form.location,
-          tags: tags ? tags.split(',').map((s) => s.trim()).filter(Boolean) : undefined,
-        }),
-      });
+      const created = await create({
+        title: form.title,
+        description: form.description,
+        payout: payoutInt,
+        location: form.location,
+        tags: tags ? tags.split(',').map((s) => s.trim()).filter(Boolean) : undefined,
+      } as any);
 
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || `HTTP ${res.status}`);
-      }
+      if (!created) throw new Error('Failed to create gig');
 
       Alert.alert('Posted', 'Your gig was posted');
       router.replace('/(tabs)');

@@ -1,12 +1,3 @@
-import { Controller, Get } from '@nestjs/common';
-import { AppService } from './app.service';
-
-@Controller()
-export class AppController {
-  constructor(private readonly appService: AppService) {}
-
-  @Get()
-  health() {
-    return this.appService.getHealth();
-  }
-}
+// AppController health endpoint has been migrated to Convex httpAction (`convex/http.ts`).
+// File stubbed to avoid server-side usage.
+export {};

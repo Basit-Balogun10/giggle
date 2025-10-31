@@ -1,6 +1,7 @@
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from './public.decorator';
+import { isAuthenticated } from '../../../convex/auth';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -26,17 +27,15 @@ export class AuthGuard implements CanActivate {
             req.user = { id: token.substring(4) };
           } else {
             try {
-              // Attempt to call a Convex-auth provided verifier if present. The file
-              // `convex/auth.ts` should export `isAuthenticated` when Convex Auth is
-              // configured. This is a non-breaking, optional integration.
-              // Path is relative to packages/server/src -> ../../../convex/auth
-              // eslint-disable-next-line @typescript-eslint/no-var-requires
-              const convexAuth = require('../../../convex/auth');
-              if (convexAuth && typeof convexAuth.isAuthenticated === 'function') {
-                const user = await convexAuth.isAuthenticated(token);
-                if (user && user.id) {
-                  req.user = { id: user.id };
+              // Use the local `convex/auth` helper which implements isAuthenticated.
+              if (typeof token === 'string') {
+                const authUser = await isAuthenticated(token);
+                if (authUser && authUser.id) {
+                  req.user = { id: authUser.id };
                 }
+              }
+              if (user && user.id) {
+                req.user = { id: user.id };
               }
             } catch (e) {
               // No convex auth present or call failed — continue to other fallbacks.

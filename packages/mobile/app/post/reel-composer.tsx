@@ -1,10 +1,11 @@
 import React from 'react';
-import { View, TextInput, ScrollView, ActivityIndicator } from 'react-native';
+import { View, TextInput, ScrollView, ActivityIndicator, Modal, Alert } from 'react-native';
 import { Button, Text } from '@/components/ui';
 import SlideBackgroundPicker from '@/ui/reels/SlideBackgroundPicker';
 import ReelView from '@/ui/reels/ReelView';
 import { useRouter } from 'expo-router';
-import fetchWithAuth from '@/network/fetchWithAuth';
+import { useMutation } from 'convex/react';
+import { api } from '../../../../convex/_generated/api';
 import { addOptimisticGig, replaceOptimisticGig, removeOptimisticGigById } from '../../src/optimisticGigs';
 
 export default function ReelComposer() {
@@ -12,8 +13,10 @@ export default function ReelComposer() {
     { id: '1', text: '', bg: '#111827' },
   ]);
   const [publishing, setPublishing] = React.useState(false);
+  const [previewOpen, setPreviewOpen] = React.useState(false);
   const scrollRef = React.useRef<ScrollView | null>(null);
   const router = useRouter();
+  const create = useMutation(api.functions.gigs.createGig as any);
 
   function updateSlide(i: number, patch: Partial<{ text: string; bg: string }>) {
     setSlides((prev) => prev.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));
@@ -34,23 +37,29 @@ export default function ReelComposer() {
       addOptimisticGig(optimisticGig as any);
       setPublishing(true);
 
-      const res = await fetchWithAuth('http://localhost:3333/api/gigs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: 'Reel Post', slides }),
-      });
-      if (res.ok) {
-        const real = await res.json();
-        replaceOptimisticGig(tempId, real);
+      const created = await create({ title: 'Reel Post', slides } as any);
+      if (created) {
+        // reconcile optimistic gig
+        try {
+          const real = {
+            id: String(created._id ?? created.id),
+            title: created.title,
+            description: created.description ?? undefined,
+            payout: created.payout ?? 0,
+            createdAt: new Date(Number(created.createdAt ?? created._creationTime)).toISOString(),
+          };
+          replaceOptimisticGig(tempId, real as any);
+        } catch {
+          /* ignore */
+        }
         router.back();
       } else {
-        const body = await res.text();
         removeOptimisticGigById(tempId);
-        Alert.alert('Publish failed', body);
+        Alert.alert('Publish failed');
       }
     } catch (err) {
       // remove optimistic on failure
-      // eslint-disable-next-line no-console
+      // log error
       console.error(err);
       Alert.alert('Publish failed');
     }
@@ -60,7 +69,7 @@ export default function ReelComposer() {
   }
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 16 }}>
+    <ScrollView ref={scrollRef} contentContainerStyle={{ padding: 16 }}>
       <Text variant="h2">Create Reel</Text>
       <View style={{ height: 400, marginVertical: 12 }}>
         <ReelView slides={slides} />
@@ -99,10 +108,23 @@ export default function ReelComposer() {
       </Button>
 
       <View style={{ marginTop: 12 }}>
+        <Button onPress={() => setPreviewOpen(true)} variant="secondary">Preview</Button>
+      </View>
+
+      <View style={{ marginTop: 12 }}>
         <Button onPress={publish} disabled={publishing || slides.length === 0}>
           {publishing ? <ActivityIndicator color="#fff" /> : 'Publish'}
         </Button>
       </View>
+
+      <Modal visible={previewOpen} animationType="slide" onRequestClose={() => setPreviewOpen(false)}>
+        <View style={{ flex: 1, backgroundColor: '#000' }}>
+          <ReelView slides={slides} />
+          <View style={{ position: 'absolute', top: 48, left: 16 }}>
+            <Button onPress={() => setPreviewOpen(false)}>Close</Button>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }

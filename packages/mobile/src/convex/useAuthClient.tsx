@@ -79,6 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   async function sendOtp(phone: string) {
     // If @convex-dev/auth/react is available, call its signIn/sendOtp helper.
     try {
+      // use static import path (package is in mobile deps)
       const convexAuth = await import('@convex-dev/auth/react');
       if (convexAuth && typeof (convexAuth as any).signIn === 'function') {
         await (convexAuth as any).signIn({ phone });

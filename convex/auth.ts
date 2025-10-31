@@ -31,36 +31,61 @@
 // to a simple dev-token scheme (dev:<userId>). The AuthGuard calls
 // `isAuthenticated(token)` to verify Bearer tokens.
 
+// Try to wire up Convex Auth server helpers using `@convex-dev/auth/server` and the
+// Resend provider implemented in `convex/ResendOTP.ts`. If the auth package is not
+// available, fall back to a simple dev-token scheme so local development continues.
+
+import type { AuthProvider } from '@convex-dev/auth/server';
+
+let serverExports: any = null;
+
+try {
+	// dynamic require to avoid hard dependency errors when editing locally without installing
+	// but prefer the package when available.
+	// eslint-disable-next-line @typescript-eslint/no-var-requires
+	const { convexAuth } = require('@convex-dev/auth/server');
+	// Try to load ResendOTP provider (safe export from convex/ResendOTP)
+	// eslint-disable-next-line @typescript-eslint/no-var-requires
+	const { ResendOTP } = require('./ResendOTP');
+
+	const providers: AuthProvider[] = [];
+	if (ResendOTP) providers.push(ResendOTP);
+
+	// Initialize convexAuth with our providers and default options.
+	serverExports = convexAuth({ providers });
+} catch (err) {
+	// missing package; leave serverExports null to fall back to dev tokens below
+}
+
 export async function isAuthenticated(token: string): Promise<{ id: string } | null> {
 	if (!token) return null;
 	// Quick dev token support: 'dev:alice' -> { id: 'alice' }
-	if (token.startsWith('dev:')) {
-		return { id: token.substring(4) };
-	}
+	if (token.startsWith('dev:')) return { id: token.substring(4) };
 
-	// If @convex-dev/auth is installed and configured, try to use it.
-	try {
-		// eslint-disable-next-line @typescript-eslint/no-var-requires
-		const convexAuthModule = require('@convex-dev/auth/server');
-		if (convexAuthModule && typeof convexAuthModule.verifyToken === 'function') {
-			// Some versions expose a verifyToken helper — try calling it.
-			const result = await convexAuthModule.verifyToken(token);
-			if (result && result.id) return { id: result.id };
+	if (serverExports) {
+		try {
+			// serverExports may expose verify or verifyToken
+			if (typeof serverExports.verify === 'function') {
+				const r = await serverExports.verify(token);
+				if (r && r.id) return { id: r.id };
+			}
+			if (typeof serverExports.verifyToken === 'function') {
+				const r = await serverExports.verifyToken(token);
+				if (r && r.id) return { id: r.id };
+			}
+			// Some versions export `auth` with a `verify` function
+			if (serverExports.auth && typeof serverExports.auth.verify === 'function') {
+				const r = await serverExports.auth.verify(token);
+				if (r && r.id) return { id: r.id };
+			}
+		} catch (err) {
+			// verification failed
 		}
-
-		// If the project exports a helper in convex/auth.functions (example), call it.
-		// eslint-disable-next-line @typescript-eslint/no-var-requires
-		const convexFn = require('./functions/auth') as any;
-		if (convexFn && typeof convexFn.verify === 'function') {
-			const r = await convexFn.verify(token);
-			if (r && r.id) return { id: r.id };
-		}
-	} catch (err) {
-		// Missing packages or verification failed — fall back to dev-token behavior.
 	}
 
 	return null;
 }
 
-export {};
+// Re-export server helpers when available for direct use in Convex functions
+export const authExports = serverExports;
 
