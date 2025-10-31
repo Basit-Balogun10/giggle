@@ -23,7 +23,7 @@ const MAPPING = {
   "chevron.right": "chevron-right",
   menucard: "menu",
   "checkmark.shield.fill": "verified-user",
-  "plus": "add",
+  plus: "add",
 } as IconMapping;
 
 /**

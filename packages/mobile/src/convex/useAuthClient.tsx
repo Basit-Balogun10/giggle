@@ -1,10 +1,10 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from "react";
 
 // Convex-backed auth adapter for mobile.
 // This version requires `@convex-dev/auth/react` to be installed and will
 // delegate auth to the Convex Auth React hooks. There is no dev fallback.
 
-const STORAGE_KEY = 'giggle_auth_token_v1';
+const STORAGE_KEY = "giggle_auth_token_v1";
 
 type User = { id: string } | null;
 
@@ -21,8 +21,8 @@ const AuthContext = createContext<AuthContextShape | undefined>(undefined);
 
 async function tryImportSecureStore() {
   try {
-    const mod = await import('expo-secure-store');
-    return mod as typeof import('expo-secure-store');
+    const mod = await import("expo-secure-store");
+    return mod as typeof import("expo-secure-store");
   } catch {
     return null;
   }
@@ -36,9 +36,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     (async () => {
       try {
-        const convexAuth = await import('@convex-dev/auth/react');
+        const convexAuth = await import("@convex-dev/auth/react");
         // If available, try to read session/token helper
-        if (convexAuth && typeof (convexAuth as any).getSession === 'function') {
+        if (
+          convexAuth &&
+          typeof (convexAuth as any).getSession === "function"
+        ) {
           const sess = await (convexAuth as any).getSession();
           if (sess && sess.token) {
             setToken(sess.token);
@@ -48,8 +51,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (err) {
         // Convex auth must be installed for production use.
         // Surface a helpful error so maintainers can install/configure it.
-         
-        console.error('Missing @convex-dev/auth/react. Install and configure Convex Auth to enable auth.');
+
+        console.error(
+          "Missing @convex-dev/auth/react. Install and configure Convex Auth to enable auth."
+        );
         throw err;
       } finally {
         setLoading(false);
@@ -59,17 +64,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Convex-backed implementations
   async function sendOtp(phone: string) {
-    const convexAuth = await import('@convex-dev/auth/react');
-    if (!convexAuth || typeof (convexAuth as any).signIn !== 'function') {
-      throw new Error('Convex Auth signIn not available. Ensure @convex-dev/auth/react is installed and up to date.');
+    const convexAuth = await import("@convex-dev/auth/react");
+    if (!convexAuth || typeof (convexAuth as any).signIn !== "function") {
+      throw new Error(
+        "Convex Auth signIn not available. Ensure @convex-dev/auth/react is installed and up to date."
+      );
     }
     await (convexAuth as any).signIn({ phone });
   }
 
   async function verifyOtp(code: string) {
-    const convexAuth = await import('@convex-dev/auth/react');
-    if (!convexAuth || typeof (convexAuth as any).verify !== 'function') {
-      throw new Error('Convex Auth verify not available. Ensure @convex-dev/auth/react is installed and up to date.');
+    const convexAuth = await import("@convex-dev/auth/react");
+    if (!convexAuth || typeof (convexAuth as any).verify !== "function") {
+      throw new Error(
+        "Convex Auth verify not available. Ensure @convex-dev/auth/react is installed and up to date."
+      );
     }
     const result = await (convexAuth as any).verify(code);
     if (result && result.token) {
@@ -79,9 +88,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function signOut() {
-    const convexAuth = await import('@convex-dev/auth/react');
-    if (!convexAuth || typeof (convexAuth as any).signOut !== 'function') {
-      throw new Error('Convex Auth signOut not available. Ensure @convex-dev/auth/react is installed and up to date.');
+    const convexAuth = await import("@convex-dev/auth/react");
+    if (!convexAuth || typeof (convexAuth as any).signOut !== "function") {
+      throw new Error(
+        "Convex Auth signOut not available. Ensure @convex-dev/auth/react is installed and up to date."
+      );
     }
     await (convexAuth as any).signOut();
     setUser(null);
@@ -102,6 +113,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuthClient() {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuthClient must be used inside AuthProvider');
+  if (!ctx) throw new Error("useAuthClient must be used inside AuthProvider");
   return ctx;
 }

@@ -1,20 +1,22 @@
-import { Controller, Post, Body, Logger, Get, Query } from '@nestjs/common';
-import { ConvexService } from './convex.service';
-import type { CreateGigDTO, Gig } from '../../common/src/types';
+import { Controller, Post, Body, Logger, Get, Query } from "@nestjs/common";
+import { ConvexService } from "./convex.service";
+import type { CreateGigDTO, Gig } from "../../common/src/types";
 
-@Controller('gigs')
+@Controller("gigs")
 export class GigsController {
   private logger = new Logger(GigsController.name);
   constructor(private readonly convex: ConvexService) {
-    this.logger.log(`GigsController constructed; convex injected=${!!this.convex}`);
+    this.logger.log(
+      `GigsController constructed; convex injected=${!!this.convex}`
+    );
   }
 
   @Get()
   async list(
-    @Query('tag') tag?: string,
-    @Query('min') min?: string,
-    @Query('max') max?: string,
-    @Query('q') q?: string,
+    @Query("tag") tag?: string,
+    @Query("min") min?: string,
+    @Query("max") max?: string,
+    @Query("q") q?: string
   ) {
     const filters: any = {};
     if (tag) filters.tag = tag;
@@ -24,10 +26,12 @@ export class GigsController {
     return this.convex.listGigs(filters);
   }
 
-  @Get('tags')
+  @Get("tags")
   async listTags() {
-    if (!this.convex || typeof (this.convex as any).listGigs !== 'function') {
-      throw new Error('ConvexService not available. Ensure ConvexService is provided and Convex is configured.');
+    if (!this.convex || typeof (this.convex as any).listGigs !== "function") {
+      throw new Error(
+        "ConvexService not available. Ensure ConvexService is provided and Convex is configured."
+      );
     }
     const gigs = await (this.convex as any).listGigs();
     const tagSet = new Set<string>();
@@ -42,11 +46,11 @@ export class GigsController {
   async create(@Body() payload: CreateGigDTO): Promise<Gig> {
     try {
       // Use injected ConvexService instance (no runtime fallback here for production).
-      if (!this.convex) throw new Error('ConvexService not injected');
+      if (!this.convex) throw new Error("ConvexService not injected");
       const result = await this.convex.createGig(payload);
       return result;
     } catch (err) {
-      this.logger.error('Error creating gig', err as Error);
+      this.logger.error("Error creating gig", err as Error);
       throw err;
     }
   }

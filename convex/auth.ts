@@ -31,43 +31,49 @@
 // to a simple dev-token scheme (dev:<userId>). The AuthGuard calls
 // `isAuthenticated(token)` to verify Bearer tokens.
 
+export async function isAuthenticated(
+  token: string
+): Promise<{ id: string } | null> {
+  if (!token) return null;
 
-export async function isAuthenticated(token: string): Promise<{ id: string } | null> {
-	if (!token) return null;
+  // Strict Convex-only auth: require @convex-dev/auth/server to be installed
+  // and use its verification helpers. If it's not available, throw a clear
+  // error so the deploy/dev environment is configured correctly.
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const convexAuthModule = require("@convex-dev/auth/server");
+    // Common helper names: verifyToken or verify — try them.
+    if (convexAuthModule) {
+      if (typeof convexAuthModule.verifyToken === "function") {
+        const result = await convexAuthModule.verifyToken(token);
+        if (result && result.id) return { id: result.id };
+      }
+      if (typeof convexAuthModule.verify === "function") {
+        const result = await convexAuthModule.verify(token);
+        if (result && result.id) return { id: result.id };
+      }
+    }
 
-	// Strict Convex-only auth: require @convex-dev/auth/server to be installed
-	// and use its verification helpers. If it's not available, throw a clear
-	// error so the deploy/dev environment is configured correctly.
-	try {
-		// eslint-disable-next-line @typescript-eslint/no-var-requires
-		const convexAuthModule = require('@convex-dev/auth/server');
-		// Common helper names: verifyToken or verify — try them.
-		if (convexAuthModule) {
-			if (typeof convexAuthModule.verifyToken === 'function') {
-				const result = await convexAuthModule.verifyToken(token);
-				if (result && result.id) return { id: result.id };
-			}
-			if (typeof convexAuthModule.verify === 'function') {
-				const result = await convexAuthModule.verify(token);
-				if (result && result.id) return { id: result.id };
-			}
-		}
+    // If a Convex server-side function export is present in convex/functions/auth,
+    // call it to verify tokens (some setups expose verification via functions).
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const convexFn = require("./functions/auth") as any;
+    if (convexFn && typeof convexFn.verify === "function") {
+      const r = await convexFn.verify(token);
+      if (r && r.id) return { id: r.id };
+    }
 
-		// If a Convex server-side function export is present in convex/functions/auth,
-		// call it to verify tokens (some setups expose verification via functions).
-		// eslint-disable-next-line @typescript-eslint/no-var-requires
-		const convexFn = require('./functions/auth') as any;
-		if (convexFn && typeof convexFn.verify === 'function') {
-			const r = await convexFn.verify(token);
-			if (r && r.id) return { id: r.id };
-		}
-
-		throw new Error('Convex Auth is installed but no verification helper returned a user id');
-	} catch (err: any) {
-		// Re-throw with a clearer message for maintainers.
-		throw new Error(`Convex Auth verification failed: ${err?.message || String(err)}. Ensure @convex-dev/auth is installed and configured.`);
-	}
+    throw new Error(
+      "Convex Auth is installed but no verification helper returned a user id"
+    );
+  } catch (err: any) {
+    // Re-throw with a clearer message for maintainers.
+    throw new Error(
+      `Convex Auth verification failed: ${
+        err?.message || String(err)
+      }. Ensure @convex-dev/auth is installed and configured.`
+    );
+  }
 }
 
 export {};
-

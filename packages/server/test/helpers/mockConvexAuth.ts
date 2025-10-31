@@ -13,7 +13,7 @@ export function installMock() {
     // change Node's require resolution in all runners without a test harness,
     // but tests can import this helper and call the verify function directly.
     // For convenience, also set an env var that code can consult if needed.
-    process.env.GIGGLE_AUTH_MOCK = '1';
+    process.env.GIGGLE_AUTH_MOCK = "1";
   } catch (e) {
     // ignore
   }
@@ -24,10 +24,12 @@ export function uninstallMock() {
 }
 
 // Helper verify function tests can call directly if they import this module.
-export async function verifyMockToken(token: string): Promise<{ id: string } | null> {
+export async function verifyMockToken(
+  token: string
+): Promise<{ id: string } | null> {
   if (!token) return null;
   // Accept tokens starting with 'test:' and return the suffix as user id
-  if (typeof token === 'string' && token.startsWith('test:')) {
+  if (typeof token === "string" && token.startsWith("test:")) {
     return { id: token.substring(5) };
   }
   return null;

@@ -1,9 +1,9 @@
-import React from 'react'
-import { View, ScrollView, Dimensions, Pressable } from 'react-native'
-import { Text } from '@/components/ui'
-import { useThemeTokens } from '../../../components/ui/theme'
+import React from "react";
+import { View, ScrollView, Dimensions, Pressable } from "react-native";
+import { Text } from "@/components/ui";
+import { useThemeTokens } from "../../../components/ui/theme";
 
-const { width, height } = Dimensions.get('window');
+const { width, height } = Dimensions.get("window");
 
 export default function ReelSlides({
   slides,
@@ -17,7 +17,7 @@ export default function ReelSlides({
   const [index, setIndex] = React.useState(0);
   const [paused, setPaused] = React.useState(false);
   const [liked, setLiked] = React.useState(false);
-  const tokens = useThemeTokens()
+  const tokens = useThemeTokens();
   const scrollRef = React.useRef<ScrollView | null>(null);
   const indexRef = React.useRef(index);
 
@@ -27,17 +27,20 @@ export default function ReelSlides({
 
   React.useEffect(() => {
     if (!autoplay) return;
-  let id: number | null = null;
+    let id: number | null = null;
     function tick() {
       if (paused) return;
       const next = Math.min(slides.length - 1, indexRef.current + 1);
       if (next !== indexRef.current) {
         setIndex(next);
-        if (scrollRef.current) scrollRef.current.scrollTo({ x: next * width, animated: true });
+        if (scrollRef.current)
+          scrollRef.current.scrollTo({ x: next * width, animated: true });
       }
     }
-  id = setInterval(tick, autoplayDelay) as unknown as number;
-  return () => { if (id !== null) clearInterval(id); };
+    id = setInterval(tick, autoplayDelay) as unknown as number;
+    return () => {
+      if (id !== null) clearInterval(id);
+    };
   }, [autoplay, autoplayDelay, paused, slides.length]);
 
   const goTo = (i: number) => {
@@ -63,44 +66,126 @@ export default function ReelSlides({
         }}
       >
         {slides.map((s) => (
-          <View key={s.id} style={{ width, height, backgroundColor: s.bg ?? tokens.colors.background, justifyContent: 'center', alignItems: 'center' }}>
-            <Text style={{ color: tokens.colors.text, fontSize: 20 }}>{s.text}</Text>
+          <View
+            key={s.id}
+            style={{
+              width,
+              height,
+              backgroundColor: s.bg ?? tokens.colors.background,
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <Text style={{ color: tokens.colors.text, fontSize: 20 }}>
+              {s.text}
+            </Text>
           </View>
         ))}
       </ScrollView>
 
       {/* Tap zones: left half = prev, right half = next; long-press toggles pause */}
-      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} pointerEvents="box-none">
+      <View
+        style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+        pointerEvents="box-none"
+      >
         <Pressable
-          style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: width / 2 }}
-          onPress={() => { if (!paused) goTo(index - 1); }}
+          style={{
+            position: "absolute",
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: width / 2,
+          }}
+          onPress={() => {
+            if (!paused) goTo(index - 1);
+          }}
           onLongPress={() => setPaused((p) => !p)}
         />
         <Pressable
-          style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: width / 2 }}
-          onPress={() => { if (!paused) goTo(index + 1); }}
+          style={{
+            position: "absolute",
+            right: 0,
+            top: 0,
+            bottom: 0,
+            width: width / 2,
+          }}
+          onPress={() => {
+            if (!paused) goTo(index + 1);
+          }}
           onLongPress={() => setPaused((p) => !p)}
         />
       </View>
 
       {/* Overlay controls: like & share */}
-      <View style={{ position: 'absolute', right: 16, top: height / 3, alignItems: 'center' }}>
-        <Pressable onPress={() => setLiked((v) => !v)} style={{ marginBottom: 12 }}>
-          <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: liked ? tokens.colors.error : `${tokens.colors.text}22`, justifyContent: 'center', alignItems: 'center' }}>
-            <Text style={{ color: '#fff' }}>{liked ? '♥' : '♡'}</Text>
+      <View
+        style={{
+          position: "absolute",
+          right: 16,
+          top: height / 3,
+          alignItems: "center",
+        }}
+      >
+        <Pressable
+          onPress={() => setLiked((v) => !v)}
+          style={{ marginBottom: 12 }}
+        >
+          <View
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 24,
+              backgroundColor: liked
+                ? tokens.colors.error
+                : `${tokens.colors.text}22`,
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <Text style={{ color: "#fff" }}>{liked ? "♥" : "♡"}</Text>
           </View>
         </Pressable>
-        <Pressable onPress={() => { /* TODO: share sheet */ }}>
-          <View style={{ width: 48, height: 48, borderRadius: 12, backgroundColor: '#ffffff22', justifyContent: 'center', alignItems: 'center' }}>
-            <Text style={{ color: '#fff' }}>↗</Text>
+        <Pressable
+          onPress={() => {
+            /* TODO: share sheet */
+          }}
+        >
+          <View
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 12,
+              backgroundColor: "#ffffff22",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <Text style={{ color: "#fff" }}>↗</Text>
           </View>
         </Pressable>
       </View>
 
-      <View style={{ position: 'absolute', bottom: 40, left: 0, right: 0, alignItems: 'center' }}>
-        <View style={{ flexDirection: 'row' }}>
+      <View
+        style={{
+          position: "absolute",
+          bottom: 40,
+          left: 0,
+          right: 0,
+          alignItems: "center",
+        }}
+      >
+        <View style={{ flexDirection: "row" }}>
           {slides.map((s, i) => (
-            <View key={s.id} style={{ width: i === index ? 28 : 10, height: 6, borderRadius: 3, backgroundColor: i === index ? tokens.colors.text : `${tokens.colors.text}66`, marginHorizontal: 4 }} />
+            <View
+              key={s.id}
+              style={{
+                width: i === index ? 28 : 10,
+                height: 6,
+                borderRadius: 3,
+                backgroundColor:
+                  i === index ? tokens.colors.text : `${tokens.colors.text}66`,
+                marginHorizontal: 4,
+              }}
+            />
           ))}
         </View>
       </View>

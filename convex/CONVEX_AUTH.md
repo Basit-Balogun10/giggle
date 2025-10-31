@@ -5,14 +5,17 @@ There are no runtime dev fallbacks — `@convex-dev/auth` must be installed and
 properly configured for the server and mobile app to function.
 
 Required packages
+
 - `@convex-dev/auth` (server)
 - `@convex-dev/auth/react` (mobile)
 
 Required environment variables (example)
+
 - `AUTH_RESEND_KEY` — API key for Resend (email OTP) provider (if used)
 - Any provider-specific keys configured in your Convex Auth provider setup
 
 Quick local setup
+
 1. Install packages:
 
    pnpm --filter @giggle/server add @convex-dev/auth
@@ -26,6 +29,7 @@ Quick local setup
    AUTH_RESEND_KEY=your_resend_api_key_here
 
 Notes
+
 - This repository intentionally requires Convex Auth for production and local
   development. If you need CI-friendly tests without a deployed Convex Auth,
   use the mock helper at `packages/server/test/helpers/mockConvexAuth.ts`.

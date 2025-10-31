@@ -6,20 +6,22 @@ export async function verify(token: string): Promise<{ id: string } | null> {
   if (!token) return null;
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const convexAuthModule = require('@convex-dev/auth/server');
+    const convexAuthModule = require("@convex-dev/auth/server");
     if (convexAuthModule) {
-      if (typeof convexAuthModule.verifyToken === 'function') {
+      if (typeof convexAuthModule.verifyToken === "function") {
         const r = await convexAuthModule.verifyToken(token);
         if (r && r.id) return { id: r.id };
       }
-      if (typeof convexAuthModule.verify === 'function') {
+      if (typeof convexAuthModule.verify === "function") {
         const r = await convexAuthModule.verify(token);
         if (r && r.id) return { id: r.id };
       }
     }
     return null;
   } catch (err: any) {
-    throw new Error(`Convex auth verify failed: ${err?.message || String(err)}`);
+    throw new Error(
+      `Convex auth verify failed: ${err?.message || String(err)}`
+    );
   }
 }
 

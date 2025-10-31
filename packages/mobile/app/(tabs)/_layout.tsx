@@ -47,7 +47,7 @@ export default function TabLayout() {
           ),
         }}
       />
-      
+
       {/* Post button: opens the /post screen as a modal */}
       <Tabs.Screen
         name="post"
@@ -60,10 +60,18 @@ export default function TabLayout() {
           tabBarButton: (props) => (
             <Pressable
               accessibilityLabel="Create post"
-              onPress={() => router.push('/post')}
-              style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
+              onPress={() => router.push("/post")}
+              style={{
+                flex: 1,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
             >
-              <IconSymbol size={28} name="plus" color={Colors[colorScheme ?? 'light'].tint} />
+              <IconSymbol
+                size={28}
+                name="plus"
+                color={Colors[colorScheme ?? "light"].tint}
+              />
             </Pressable>
           ),
         }}
@@ -100,7 +108,11 @@ export default function TabLayout() {
         options={{
           title: "Errors",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={22} name="exclamationmark.triangle.fill" color={color} />
+            <IconSymbol
+              size={22}
+              name="exclamationmark.triangle.fill"
+              color={color}
+            />
           ),
         }}
       />

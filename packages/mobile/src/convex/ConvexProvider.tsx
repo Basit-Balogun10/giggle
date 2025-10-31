@@ -1,5 +1,5 @@
-import React, { useMemo, useState, useEffect } from 'react';
-import type { ConvexReactClient } from 'convex/react';
+import React, { useMemo, useState, useEffect } from "react";
+import type { ConvexReactClient } from "convex/react";
 
 // Safe Convex + Auth provider for mobile.
 // This file attempts to dynamically require Convex client and Convex Auth React
@@ -11,7 +11,8 @@ type Props = {
 };
 
 export default function ConvexProvider({ children }: Props) {
-  const [ReadyWrapper, setReadyWrapper] = useState<React.ComponentType<any> | null>(null);
+  const [ReadyWrapper, setReadyWrapper] =
+    useState<React.ComponentType<any> | null>(null);
 
   useEffect(() => {
     // Try to require convex/react and @convex-dev/auth/react in a safe way.
@@ -19,11 +20,17 @@ export default function ConvexProvider({ children }: Props) {
     (async () => {
       try {
         // dynamic import for runtime value
-        const convexReact = await import('convex/react');
-        const { ConvexProvider: ConvexReactProvider, ConvexReactClient: ConvexClientCtor } = convexReact as any;
+        const convexReact = await import("convex/react");
+        const {
+          ConvexProvider: ConvexReactProvider,
+          ConvexReactClient: ConvexClientCtor,
+        } = convexReact as any;
 
         // Determine Convex address from env (VITE_CONVEX_URL or CONVEX_URL) or fallback to localhost dev
-        const address = (typeof process !== 'undefined' && (process.env?.VITE_CONVEX_URL || process.env?.CONVEX_URL)) || 'http://localhost:8000';
+        const address =
+          (typeof process !== "undefined" &&
+            (process.env?.VITE_CONVEX_URL || process.env?.CONVEX_URL)) ||
+          "http://localhost:8000";
 
         // Construct a ConvexReactClient instance
         const client: ConvexReactClient = new ConvexClientCtor(address);
@@ -31,9 +38,9 @@ export default function ConvexProvider({ children }: Props) {
         // Try to import optional auth provider
         let AuthProvider: any = null;
         try {
-          const convexAuthReact = await import('@convex-dev/auth/react');
+          const convexAuthReact = await import("@convex-dev/auth/react");
           AuthProvider = convexAuthReact.ConvexAuthProvider || null;
-  } catch {
+        } catch {
           AuthProvider = null;
         }
 
@@ -42,7 +49,7 @@ export default function ConvexProvider({ children }: Props) {
           // try to import SecureStore; if present, create a TokenStorage wrapper
           let storage: any = undefined;
           try {
-            const SecureStore = await import('expo-secure-store');
+            const SecureStore = await import("expo-secure-store");
             storage = {
               getItem: (k: string) => SecureStore.getItemAsync(k),
               setItem: (k: string, v: string) => SecureStore.setItemAsync(k, v),
@@ -55,13 +62,15 @@ export default function ConvexProvider({ children }: Props) {
 
           const Wrapper: React.FC<any> = ({ children: innerChildren }) => (
             <ConvexReactProvider client={client}>
-              <AuthProvider client={client} storage={storage}>{innerChildren}</AuthProvider>
+              <AuthProvider client={client} storage={storage}>
+                {innerChildren}
+              </AuthProvider>
             </ConvexReactProvider>
           );
 
           // Improve dev ergonomics: provide a displayName for the wrapper
           try {
-            Wrapper.displayName = 'ConvexAuthWrapper';
+            Wrapper.displayName = "ConvexAuthWrapper";
           } catch (_) {}
 
           setReadyWrapper(() => Wrapper);
@@ -70,11 +79,13 @@ export default function ConvexProvider({ children }: Props) {
 
         // No auth — provide the convex client directly
         const WrapperNoAuth: React.FC<any> = ({ children: innerChildren }) => (
-          <ConvexReactProvider client={client}>{innerChildren}</ConvexReactProvider>
+          <ConvexReactProvider client={client}>
+            {innerChildren}
+          </ConvexReactProvider>
         );
         try {
-          WrapperNoAuth.displayName = 'ConvexWrapperNoAuth';
-  } catch {}
+          WrapperNoAuth.displayName = "ConvexWrapperNoAuth";
+        } catch {}
         setReadyWrapper(() => WrapperNoAuth);
         return;
       } catch {
@@ -84,9 +95,9 @@ export default function ConvexProvider({ children }: Props) {
       // No-op wrapper
       const NoOp: React.FC<any> = ({ children: c }: any) => <>{c}</>;
       try {
-        NoOp.displayName = 'ConvexNoOpWrapper';
+        NoOp.displayName = "ConvexNoOpWrapper";
       } catch (_) {}
-  setReadyWrapper(() => NoOp);
+      setReadyWrapper(() => NoOp);
     })();
   }, []);
 
