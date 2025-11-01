@@ -3,7 +3,9 @@
     "target": "ES2020",
     "module": "commonjs",
     "jsx": "react-native",
-    "lib": ["ES2020"],
+    "lib": [
+      "ES2020"
+    ],
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -12,7 +14,7 @@
     "allowSyntheticDefaultImports": true,
     "noEmit": true,
     "moduleResolution": "node",
-  "baseUrl": ".",
+    "baseUrl": ".",
     "paths": {
       "@/*": [
         "src/*",
@@ -32,8 +34,7 @@
         "src/hooks/*",
         "hooks/*",
         "../../hooks/*"
-      ]
-      ,
+      ],
       "@/hooks/*": [
         "hooks/*",
         "src/hooks/*"
@@ -42,8 +43,7 @@
         "constants/*",
         "src/constants/*",
         "../../constants/*"
-      ]
-      ,
+      ],
       "@/ui/*": [
         "ui/*",
         "src/ui/*"
@@ -67,5 +67,6 @@
     "node_modules",
     "babel.config.js",
     "metro.config.js"
-  ]
+  ],
+  "extends": "expo/tsconfig.base"
 }

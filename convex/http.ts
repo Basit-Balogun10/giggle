@@ -89,10 +89,13 @@ http.route({
         // Example: update the charge record status and write a ledger entry via internal mutations
         const reference = parsed?.data?.reference;
         if (!reference) return new Response(JSON.stringify({ status: 'error', message: 'missing reference' }), { status: 400 });
-        // Update charge status by searching for charge by reference (simple table scan)
-        // We'll call an internal mutation to record ledger; find the charge via a query is not available here so
-        // instead create a ledger entry and rely on an external reconciliation job to update charge records.
-        await ctx.runMutation(internal.functions.ledger.recordLedgerEntry, { type: 'paystack.charge.success', amount: parsed?.data?.amount ?? 0, meta: { reference: reference } });
+        // Update charge status by calling internal helper which will update the charge and record ledger entries.
+        try {
+          await ctx.runMutation(internal.functions.charges?.markChargeByReference as any, { reference, status: 'success', payload: parsed?.data ?? {} } as any);
+        } catch (e) {
+          // Fallback: if helper isn't available, write a ledger entry so accounting isn't lost.
+          await ctx.runMutation(internal.functions.ledger.recordLedgerEntry as any, { type: 'paystack.charge.success', amount: parsed?.data?.amount ?? 0, meta: { reference } as any, createdAt: Date.now() } as any);
+        }
         return new Response(JSON.stringify({ status: 'ok' }), { status: 200 });
       }
       default:

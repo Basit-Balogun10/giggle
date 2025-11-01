@@ -44,12 +44,14 @@ export default function RootLayout() {
             <ConvexProvider>
               <AuthProvider>
                 <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-              <Stack>
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen name="+not-found" />
-              </Stack>
-              <StatusBar style="auto" />
-                </ThemeProvider>
+                <Stack>
+                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                  {/* Post route presented modally above tabs */}
+                  <Stack.Screen name="post" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="+not-found" />
+                </Stack>
+                <StatusBar style="auto" />
+                  </ThemeProvider>
               </AuthProvider>
             </ConvexProvider>
           </UIThemeProvider>

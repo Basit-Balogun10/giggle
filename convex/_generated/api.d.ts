@@ -12,6 +12,7 @@ import type * as ResendOTP from "../ResendOTP.js";
 import type * as auth from "../auth.js";
 import type * as functions_auth from "../functions/auth.js";
 import type * as functions_bids from "../functions/bids.js";
+import type * as functions_charges from "../functions/charges.js";
 import type * as functions_claims from "../functions/claims.js";
 import type * as functions_gigs from "../functions/gigs.js";
 import type * as functions_ledger from "../functions/ledger.js";
@@ -36,6 +37,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   "functions/auth": typeof functions_auth;
   "functions/bids": typeof functions_bids;
+  "functions/charges": typeof functions_charges;
   "functions/claims": typeof functions_claims;
   "functions/gigs": typeof functions_gigs;
   "functions/ledger": typeof functions_ledger;

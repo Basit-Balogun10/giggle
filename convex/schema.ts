@@ -43,4 +43,13 @@ export default defineSchema({
     createdAt: v.number(),
     updatedAt: v.number(),
   }),
+  claims: defineTable({
+    userId: v.id('users'),
+    amount: v.number(),
+    chargeId: v.optional(v.id('charges')),
+    status: v.string(), // e.g. 'open','escrowed','resolved'
+    meta: v.optional(v.record(v.string(), v.union(v.string(), v.number(), v.null()))),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index('by_user', ['userId']),
 });
